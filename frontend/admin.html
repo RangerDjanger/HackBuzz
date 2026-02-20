@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz Admin - SunCorp Hackathon</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.4/jspdf.plugin.autotable.min.js"></script>
+  <script>tailwind.config={theme:{extend:{boxShadow:{'glow':'0 0 25px rgba(59,130,246,0.5), 0 0 50px rgba(59,130,246,0.2)','glow-green':'0 0 25px rgba(34,197,94,0.5)','glow-red':'0 0 25px rgba(239,68,68,0.4)','glow-purple':'0 0 25px rgba(168,85,247,0.5)','glow-sm':'0 0 15px rgba(59,130,246,0.3)'}}}}</script>
+  <style>
+    body { background: linear-gradient(135deg, #0f0c29 0%, #1a1a3e 40%, #24243e 100%); }
+    .glass { background: rgba(255,255,255,0.06); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.1); }
+    .glass-header { background: rgba(0,0,0,0.3); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,255,255,0.08); }
+    /* Trophy overlay */
+    .trophy-overlay { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); animation: fadeIn 0.3s ease; }
+    .trophy-card { text-align: center; padding: 3rem 4rem; border-radius: 1.5rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,215,0,0.3); box-shadow: 0 0 60px rgba(255,215,0,0.4), 0 0 120px rgba(255,215,0,0.15); animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1); }
+    .trophy-icon { font-size: 6rem; animation: bounce 1s ease infinite; filter: drop-shadow(0 0 30px rgba(255,215,0,0.6)); }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes popIn { from { transform: scale(0.3) rotate(-10deg); opacity: 0; } to { transform: scale(1) rotate(0); opacity: 1; } }
+    @keyframes bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+    /* Confetti */
+    .confetti-piece { position: fixed; width: 10px; height: 10px; top: -10px; z-index: 10000; animation: confettiFall linear forwards; }
+    @keyframes confettiFall { 0% { transform: translateY(0) rotate(0deg); opacity: 1; } 100% { transform: translateY(105vh) rotate(720deg); opacity: 0; } }
+  </style>
+</head>
+<body class="text-gray-100 min-h-screen flex flex-col font-sans">
+  <header class="glass-header text-white px-6 py-4 flex items-center gap-4">
+    <h1 class="text-xl font-semibold">🛠️ Quiz Admin Panel</h1>
+    <div class="flex items-center gap-3 ml-auto">
+      <span id="header-customer-logo" class="hidden"></span>
+      <img src="images/microsoft-logo.png" alt="Microsoft" class="h-9 brightness-110">
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto w-full px-5 py-10 flex-1">
+    <!-- Login -->
+    <div id="login-panel" class="glass rounded-2xl shadow-glow-purple p-8 mb-6">
+      <h2 class="text-lg font-semibold text-purple-200 mb-4">🔐 Admin Login</h2>
+      <label for="password" class="block font-semibold mb-1.5 text-sm text-gray-300">Password</label>
+      <input type="password" id="password" placeholder="Enter admin password" data-testid="admin-password"
+        class="w-full px-3.5 py-2.5 bg-white/10 border border-white/20 rounded-lg text-base text-white placeholder-gray-400 mb-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-400"
+        onkeydown="if(event.key==='Enter')login()">
+      <button class="px-5 py-2.5 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-500 hover:shadow-glow-purple transition-all" data-testid="login-btn" onclick="login()">Login</button>
+      <div id="login-msg"></div>
+    </div>
+
+    <!-- Admin Panel -->
+    <div id="admin-panel" class="hidden">
+      <!-- Tab Navigation -->
+      <div class="flex gap-1 mb-6">
+        <button id="tab-quiz" class="px-6 py-3 rounded-t-xl font-semibold text-sm transition-all bg-white/10 text-white border border-white/20 border-b-0" onclick="switchTab('quiz')">🎯 Quiz</button>
+        <button id="tab-survey" class="px-6 py-3 rounded-t-xl font-semibold text-sm transition-all bg-white/5 text-gray-400 border border-white/10 border-b-0 hover:text-gray-200" onclick="switchTab('survey')">📊 Survey Results</button>
+        <button id="tab-settings" class="px-6 py-3 rounded-t-xl font-semibold text-sm transition-all bg-white/5 text-gray-400 border border-white/10 border-b-0 hover:text-gray-200" onclick="switchTab('settings')">⚙️ Settings</button>
+      </div>
+
+      <!-- Quiz Tab -->
+      <div id="panel-quiz">
+        <!-- Current Status -->
+        <div class="glass rounded-2xl shadow-glow-sm p-8 mb-6" id="status-card">
+          <h2 class="text-lg font-semibold text-blue-200 mb-4">📊 Current Question Status</h2>
+          <div id="current-status" data-testid="current-status" class="text-gray-300">Loading...</div>
+          <div id="live-panel" class="hidden mt-5">
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="text-sm font-semibold text-gray-300">⏱️ Time Remaining</span>
+              <span id="admin-countdown" class="text-3xl font-bold tabular-nums text-blue-300">15</span>
+            </div>
+            <div class="w-full h-3 bg-white/10 rounded-full overflow-hidden border border-white/10 mb-4">
+              <div id="admin-countdown-fill" class="h-full rounded-full transition-all duration-500 ease-linear bg-gradient-to-r from-blue-500 to-cyan-400 shadow-[0_0_10px_rgba(59,130,246,0.5)]" style="width:100%"></div>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="text-4xl">📨</span>
+              <div>
+                <p class="text-sm text-gray-400">Responses received</p>
+                <p id="response-count" class="text-4xl font-extrabold text-white tabular-nums">0</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Create / Edit Question -->
+        <div class="glass rounded-2xl shadow-glow-sm p-8 mb-6">
+          <h2 class="text-lg font-semibold text-blue-200 mb-4">📝 Create / Edit Question</h2>
+          <label for="question-text" class="block font-semibold mb-1.5 text-sm text-gray-300">Question</label>
+          <textarea id="question-text" placeholder="Enter your question..." data-testid="question-input"
+            class="w-full px-3.5 py-2.5 bg-white/10 border border-white/20 rounded-lg text-base text-white placeholder-gray-400 mb-3 resize-y min-h-[60px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-400"></textarea>
+
+          <label class="block font-semibold mb-1.5 text-sm text-gray-300">Answer Options</label>
+          <p class="text-xs text-gray-400 mb-3">Add 2–4 options. Select the radio button next to the correct answer.</p>
+          <div id="options-container"></div>
+          <button class="px-4 py-2 bg-white/10 text-gray-200 border border-white/20 rounded-lg font-semibold hover:bg-white/20 transition-all mb-4" onclick="addOption()">+ Add Option</button>
+          <hr class="my-5 border-white/10">
+
+          <div class="flex gap-2 flex-wrap">
+            <button class="px-5 py-2.5 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-500 hover:shadow-glow-green transition-all" data-testid="open-btn" onclick="openQuestion()">🟢 Open Question</button>
+            <button class="px-5 py-2.5 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-500 hover:shadow-glow-red transition-all" data-testid="close-btn" onclick="closeQuestion()">🔴 Close Question</button>
+            <button class="px-5 py-2.5 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-500 hover:shadow-glow-purple transition-all" data-testid="generate-btn" onclick="generateQuestion()">🤖 AI Generate</button>
+          </div>
+
+          <div id="action-msg" class="mt-3"></div>
+        </div>
+
+        <!-- Results -->
+        <div class="glass rounded-2xl shadow-glow-sm p-8 mb-6">
+          <h2 class="text-lg font-semibold text-blue-200 mb-4">📋 Submissions</h2>
+          <button class="px-5 py-2.5 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-500 hover:shadow-glow transition-all" data-testid="refresh-btn" onclick="loadResults()">Refresh Results</button>
+          <div id="results-area" data-testid="results-area">
+            <p class="text-gray-400 mt-3">Click refresh to load results.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Survey Tab -->
+      <div id="panel-survey" class="hidden">
+        <div class="glass rounded-2xl shadow-glow-sm p-8 mb-6">
+          <h2 class="text-lg font-semibold text-purple-200 mb-4">📊 Survey Results</h2>
+          <div class="flex items-center gap-4 flex-wrap mb-4">
+            <div class="flex items-center gap-3">
+              <span class="text-sm text-gray-300 font-semibold">Survey</span>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="survey-toggle" class="sr-only peer" onchange="toggleSurvey(this.checked)">
+                <div class="w-14 h-7 bg-red-500/40 border border-red-500/50 peer-focus:outline-none rounded-full peer peer-checked:bg-green-500/40 peer-checked:border-green-500/50 transition-colors duration-200 after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-7"></div>
+              </label>
+              <span id="survey-toggle-label" class="text-sm font-semibold text-red-300">Closed</span>
+            </div>
+            <span id="survey-response-count" class="text-sm text-gray-400"></span>
+            <div class="flex gap-2 ml-auto">
+              <button class="px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-500 hover:shadow-glow-purple transition-all text-sm" onclick="loadSurveyResults()">Refresh</button>
+              <button class="px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-500 hover:shadow-glow-green transition-all text-sm" onclick="exportSurveyExcel()">📥 Excel</button>
+              <button class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-500 hover:shadow-glow transition-all text-sm" onclick="exportSurveyPDF()">📄 PDF Report</button>
+              <button class="px-4 py-2 bg-red-600/80 text-white rounded-lg font-semibold hover:bg-red-500 hover:shadow-glow-red transition-all text-sm" onclick="clearSurveyResults()">🗑️ Clear</button>
+            </div>
+          </div>
+          <div id="survey-results-area">
+            <p class="text-gray-400">Click refresh to load survey data.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings Tab -->
+      <div id="panel-settings" class="hidden">
+        <div class="glass rounded-2xl shadow-glow-sm p-8 mb-6">
+          <h2 class="text-lg font-semibold text-blue-200 mb-6">⚙️ Settings</h2>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+            <div>
+              <label class="block font-semibold mb-1.5 text-sm text-gray-300">Organisation Name</label>
+              <input type="text" id="setting-org-name" placeholder="e.g. Contoso Ltd" maxlength="200"
+                class="w-full px-3.5 py-2.5 bg-white/10 border border-white/20 rounded-lg text-base text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+              <label class="block font-semibold mb-1.5 text-sm text-gray-300">Hackathon Name</label>
+              <input type="text" id="setting-hack-name" placeholder="e.g. Cloud Innovation Hackathon 2026" maxlength="200"
+                class="w-full px-3.5 py-2.5 bg-white/10 border border-white/20 rounded-lg text-base text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+          </div>
+
+          <div class="mb-6">
+            <label class="block font-semibold mb-1.5 text-sm text-gray-300">Question Timer (seconds)</label>
+            <div class="flex items-center gap-3">
+              <input type="range" id="setting-timer" min="5" max="120" value="15" step="5"
+                class="flex-1 h-2 bg-white/10 rounded-lg appearance-none accent-blue-500"
+                oninput="document.getElementById('timer-value').textContent = this.value + 's'">
+              <span id="timer-value" class="text-lg font-bold text-blue-300 w-12 text-center">15s</span>
+            </div>
+            <p class="text-xs text-gray-500 mt-1">Min 5s, Max 120s</p>
+          </div>
+
+          <div class="mb-6">
+            <label class="block font-semibold mb-1.5 text-sm text-gray-300">Organisation Logo</label>
+            <p class="text-xs text-gray-500 mb-3">Upload a logo (PNG, JPG, SVG). Max 500KB. Displayed in the header of all pages.</p>
+            <div class="flex items-center gap-4">
+              <div id="logo-preview" class="w-20 h-20 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden">
+                <span class="text-gray-500 text-xs">No logo</span>
+              </div>
+              <div class="flex flex-col gap-2">
+                <label class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-500 hover:shadow-glow transition-all text-sm cursor-pointer inline-block text-center">
+                  📁 Choose File
+                  <input type="file" id="setting-logo" accept="image/png,image/jpeg,image/svg+xml,image/webp" class="hidden" onchange="previewLogo(this)">
+                </label>
+                <button class="px-4 py-2 bg-red-600/60 text-white rounded-lg font-semibold hover:bg-red-500 transition-all text-sm" onclick="clearLogo()">Remove Logo</button>
+              </div>
+            </div>
+          </div>
+
+          <hr class="my-5 border-white/10">
+          <button class="px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-500 hover:shadow-glow-green transition-all text-base" onclick="saveSettings()">💾 Save Settings</button>
+          <div id="settings-msg" class="mt-3"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="text-center py-4 text-gray-500 text-sm">&copy; 2026 Microsoft Customer Success</footer>
+
+  <script>
+    const API_BASE = "/api";
+    let adminPassword = sessionStorage.getItem("adminPassword") || "";
+
+    function getHeaders() {
+      return {
+        "Content-Type": "application/json",
+        "x-admin-password": adminPassword,
+      };
+    }
+
+    function switchTab(tab) {
+      const panels = { quiz: 'panel-quiz', survey: 'panel-survey', settings: 'panel-settings' };
+      const tabs = { quiz: 'tab-quiz', survey: 'tab-survey', settings: 'tab-settings' };
+      const activeClasses = 'bg-white/10 text-white border border-white/20 border-b-0';
+      const inactiveClasses = 'bg-white/5 text-gray-400 border border-white/10 border-b-0 hover:text-gray-200';
+
+      for (const [key, panelId] of Object.entries(panels)) {
+        document.getElementById(panelId).classList.toggle('hidden', key !== tab);
+        document.getElementById(tabs[key]).className = `px-6 py-3 rounded-t-xl font-semibold text-sm transition-all ${key === tab ? activeClasses : inactiveClasses}`;
+      }
+
+      if (tab === 'survey') loadSurveyStatus();
+      if (tab === 'settings') loadSettings();
+    }
+
+    // Auto-login if saved password exists
+    (async function autoLogin() {
+      if (!adminPassword) return;
+      try {
+        const res = await fetch(`${API_BASE}/manage/results`, { headers: getHeaders() });
+        if (res.ok) {
+          document.getElementById("login-panel").classList.add("hidden");
+          document.getElementById("admin-panel").classList.remove("hidden");
+          loadStatus();
+          initOptions();
+          loadSurveyStatus();
+        } else {
+          sessionStorage.removeItem("adminPassword");
+          adminPassword = "";
+        }
+      } catch (e) { /* show login form */ }
+    })();
+
+    async function login() {
+      adminPassword = document.getElementById("password").value;
+      const loginMsg = document.getElementById("login-msg");
+
+      try {
+        const res = await fetch(`${API_BASE}/manage/results`, { headers: getHeaders() });
+        if (res.ok) {
+          sessionStorage.setItem("adminPassword", adminPassword);
+          document.getElementById("login-panel").classList.add("hidden");
+          document.getElementById("admin-panel").classList.remove("hidden");
+          loadStatus();
+          initOptions();
+          loadSurveyStatus();
+        } else {
+          loginMsg.innerHTML = `<div class="px-4 py-3 rounded-lg mt-3 font-medium bg-red-500/15 text-red-300 border border-red-500/30">Invalid password.</div>`;
+        }
+      } catch (e) {
+        loginMsg.innerHTML = `<div class="px-4 py-3 rounded-lg mt-3 font-medium bg-red-500/15 text-red-300 border border-red-500/30">Connection error.</div>`;
+      }
+    }
+
+    function initOptions() {
+      const container = document.getElementById("options-container");
+      container.innerHTML = "";
+      addOption();
+      addOption();
+    }
+
+    function addOption() {
+      const container = document.getElementById("options-container");
+      if (container.children.length >= 4) return;
+      const idx = container.children.length + 1;
+      const row = document.createElement("div");
+      row.className = "flex gap-2 items-center mb-2";
+      row.innerHTML = `<input type="radio" name="correctAnswer" value="${idx}" class="correct-radio w-4 h-4 accent-green-500" title="Mark as correct answer" data-testid="correct-radio"><input type="text" placeholder="Option ${idx}" class="opt-input flex-1 px-3.5 py-2.5 bg-white/10 border border-white/20 rounded-lg text-base text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" data-testid="option-input"><button class="text-red-400 text-xl px-2 hover:text-red-300" onclick="this.parentElement.remove()" title="Remove">&times;</button>`;
+      container.appendChild(row);
+    }
+
+    let adminCountdownInterval = null;
+    let adminPollInterval = null;
+    let adminOpenedAt = null;
+
+    async function loadStatus() {
+      try {
+        const res = await fetch(`${API_BASE}/question`);
+        const data = await res.json();
+        const el = document.getElementById("current-status");
+        const livePanel = document.getElementById("live-panel");
+
+        if (data.isOpen) {
+          el.innerHTML = `<span class="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-green-500/20 text-green-300 border border-green-500/30 shadow-glow-green">OPEN</span>
+            <p class="mt-3 font-bold text-white">${escapeHtml(data.question)}</p>
+            <p class="text-gray-400 mt-1">Options: ${data.options.map(o => escapeHtml(o)).join(", ")}</p>`;
+          livePanel.classList.remove("hidden");
+          adminOpenedAt = data.openedAt ? new Date(data.openedAt).getTime() : Date.now();
+          autoCloseTriggered = false;
+          startAdminCountdown();
+          startResponsePolling();
+        } else {
+          el.innerHTML = `<span class="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-red-500/20 text-red-300 border border-red-500/30">CLOSED</span>
+            <p class="mt-3 text-gray-400">${escapeHtml(data.message || "No question active.")}</p>`;
+          livePanel.classList.add("hidden");
+          stopAdminTimers();
+        }
+      } catch (e) {
+        document.getElementById("current-status").textContent = "Error loading status.";
+      }
+    }
+
+    // Audio - init on first user interaction to satisfy browser autoplay policy
+    let audioCtx = null;
+    let adminBeepedAt = {};
+    function ensureAudio() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+    document.addEventListener('click', ensureAudio, { once: false });
+    document.addEventListener('touchstart', ensureAudio, { once: false });
+    document.addEventListener('keydown', ensureAudio, { once: false });
+
+    function playBeep(freq, duration) {
+      ensureAudio();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.frequency.value = freq;
+      osc.type = 'square';
+      gain.gain.setValueAtTime(0.6, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+      osc.start(audioCtx.currentTime);
+      osc.stop(audioCtx.currentTime + duration);
+    }
+
+    function startAdminCountdown() {
+      if (adminCountdownInterval) clearInterval(adminCountdownInterval);
+      adminBeepedAt = {};
+      adminCountdownInterval = setInterval(updateAdminCountdown, 250);
+      updateAdminCountdown();
+    }
+
+    function updateAdminCountdown() {
+      const elapsed = (Date.now() - adminOpenedAt) / 1000;
+      const remaining = Math.max(0, (appSettings.timerSeconds || 15) - elapsed);
+      const pct = (remaining / (appSettings.timerSeconds || 15)) * 100;
+      const sec = Math.ceil(remaining);
+
+      const textEl = document.getElementById("admin-countdown");
+      const fillEl = document.getElementById("admin-countdown-fill");
+      if (!textEl || !fillEl) return;
+
+      textEl.textContent = sec;
+      fillEl.style.width = pct + "%";
+
+      // Beep at 3, 2, 1
+      if (sec === 3 && !adminBeepedAt[3]) { adminBeepedAt[3] = true; playBeep(800, 0.15); }
+      if (sec === 2 && !adminBeepedAt[2]) { adminBeepedAt[2] = true; playBeep(800, 0.15); }
+      if (sec === 1 && !adminBeepedAt[1]) { adminBeepedAt[1] = true; playBeep(1200, 0.6); }
+
+      if (remaining <= 10) {
+        fillEl.className = fillEl.className.replace(/from-\S+ to-\S+/, "from-red-500 to-orange-400");
+        fillEl.style.boxShadow = "0 0 10px rgba(239,68,68,0.5)";
+        textEl.className = textEl.className.replace(/text-(blue|yellow)-\d+/, "text-red-400");
+      } else if (remaining <= 20) {
+        fillEl.className = fillEl.className.replace(/from-\S+ to-\S+/, "from-yellow-500 to-amber-400");
+        fillEl.style.boxShadow = "0 0 10px rgba(234,179,8,0.5)";
+        textEl.className = textEl.className.replace(/text-(blue|red)-\d+/, "text-yellow-300");
+      }
+
+      if (remaining <= 0) {
+        clearInterval(adminCountdownInterval);
+        adminCountdownInterval = null;
+        textEl.innerHTML = "<span class='text-red-400 animate-pulse'>⏰ Time's up! Closing...</span>";
+        autoCloseQuestion();
+      }
+    }
+
+    function startResponsePolling() {
+      if (adminPollInterval) clearInterval(adminPollInterval);
+      pollResponseCount();
+      adminPollInterval = setInterval(pollResponseCount, 2000);
+    }
+
+    async function pollResponseCount() {
+      try {
+        const res = await fetch(`${API_BASE}/manage/results`, { headers: getHeaders() });
+        if (!res.ok) return;
+        const data = await res.json();
+        const countEl = document.getElementById("response-count");
+        if (countEl) {
+          const newCount = data.results.length;
+          const oldCount = parseInt(countEl.textContent) || 0;
+          countEl.textContent = newCount;
+          if (newCount > oldCount) {
+            countEl.style.transform = "scale(1.3)";
+            countEl.style.color = "#4ade80";
+            setTimeout(() => { countEl.style.transform = "scale(1)"; countEl.style.color = "white"; countEl.style.transition = "all 0.3s"; }, 300);
+          }
+        }
+      } catch (e) { /* ignore */ }
+    }
+
+    function stopAdminTimers() {
+      if (adminCountdownInterval) { clearInterval(adminCountdownInterval); adminCountdownInterval = null; }
+      if (adminPollInterval) { clearInterval(adminPollInterval); adminPollInterval = null; }
+    }
+
+    async function openQuestion() {
+      const question = document.getElementById("question-text").value.trim();
+      const optRows = document.querySelectorAll("#options-container > div");
+      const options = [];
+      let correctAnswer = null;
+
+      optRows.forEach((row, i) => {
+        const text = row.querySelector(".opt-input").value.trim();
+        const radio = row.querySelector(".correct-radio");
+        if (text) {
+          options.push(text);
+          if (radio && radio.checked) correctAnswer = text;
+        }
+      });
+
+      const msgEl = document.getElementById("action-msg");
+
+      if (!question) { msgEl.innerHTML = `<div class="px-4 py-3 rounded-lg font-medium bg-red-500/15 text-red-300 border border-red-500/30">Enter a question.</div>`; return; }
+      if (options.length < 2 || options.length > 4) { msgEl.innerHTML = `<div class="px-4 py-3 rounded-lg font-medium bg-red-500/15 text-red-300 border border-red-500/30">Add 2–4 options.</div>`; return; }
+      if (!correctAnswer) { msgEl.innerHTML = `<div class="px-4 py-3 rounded-lg font-medium bg-red-500/15 text-red-300 border border-red-500/30">Select the correct answer.</div>`; return; }
+
+      try {
+        const res = await fetch(`${API_BASE}/manage/open`, {
+          method: "POST",
+          headers: getHeaders(),
+          body: JSON.stringify({ question, options, correctAnswer }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          msgEl.innerHTML = `<div class="px-4 py-3 rounded-lg font-medium bg-green-500/15 text-green-300 border border-green-500/30 shadow-glow-green" data-testid="action-success">✅ ${escapeHtml(data.message)}</div>`;
+          loadStatus();
+        } else {
+          msgEl.innerHTML = `<div class="px-4 py-3 rounded-lg font-medium bg-red-500/15 text-red-300 border border-red-500/30">❌ ${escapeHtml(data.error)}</div>`;
+        }
+      } catch (e) {
+        msgEl.innerHTML = `<div class="px-4 py-3 rounded-lg font-medium bg-red-500/15 text-red-300 border border-red-500/30">Network error.</div>`;
+      }
+    }
+
+    let autoCloseTriggered = false;
+
+    async function autoCloseQuestion() {
+      if (autoCloseTriggered) return;
+      autoCloseTriggered = true;
+      try {
+        const res = await fetch(`${API_BASE}/manage/close`, { method: "POST", headers: getHeaders() });
+        if (res.ok) {
+          stopAdminTimers();
+          loadStatus();
+          loadResults();
+        }
+      } catch (e) { /* ignore */ }
+    }
+
+    async function closeQuestion() {
+      const msgEl = document.getElementById("action-msg");
+      try {
+        const res = await fetch(`${API_BASE}/manage/close`, {
+          method: "POST",
+          headers: getHeaders(),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          msgEl.innerHTML = `<div class="px-4 py-3 rounded-lg font-medium bg-green-500/15 text-green-300 border border-green-500/30 shadow-glow-green" data-testid="action-success">✅ ${escapeHtml(data.message)}</div>`;
+          loadStatus();
+        } else {
+          msgEl.innerHTML = `<div class="px-4 py-3 rounded-lg font-medium bg-red-500/15 text-red-300 border border-red-500/30">❌ ${escapeHtml(data.error)}</div>`;
+        }
+      } catch (e) {
+        msgEl.innerHTML = `<div class="px-4 py-3 rounded-lg font-medium bg-red-500/15 text-red-300 border border-red-500/30">Network error.</div>`;
+      }
+    }
+
+    async function loadResults() {
+      const area = document.getElementById("results-area");
+      try {
+        const res = await fetch(`${API_BASE}/manage/results`, { headers: getHeaders() });
+        const data = await res.json();
+        if (!res.ok) { area.innerHTML = `<div class="px-4 py-3 rounded-lg font-medium bg-red-500/15 text-red-300 border border-red-500/30">${escapeHtml(data.error)}</div>`; return; }
+        if (data.results.length === 0) {
+          area.innerHTML = `<p class="text-gray-500 mt-3">No submissions yet.</p>`;
+          return;
+        }
+        const ca = data.correctAnswer;
+        const openedAt = data.openedAt ? new Date(data.openedAt).getTime() : null;
+
+        // Find top 3 correct submissions by time
+        const correctOnes = data.results.filter(r => r.isCorrect);
+        const top3 = correctOnes.slice(0, 3);
+        const winner = top3.length > 0 ? top3[0] : null;
+
+        // Calculate response times
+        function formatResponseTime(submittedAt) {
+          if (!openedAt) return '—';
+          const submitted = new Date(submittedAt).getTime();
+          const diff = (submitted - openedAt) / 1000;
+          if (diff < 0) return '—';
+          return diff.toFixed(2) + 's';
+        }
+
+        function timeSplit(a, b) {
+          const ta = new Date(a).getTime();
+          const tb = new Date(b).getTime();
+          const diff = Math.abs(tb - ta) / 1000;
+          return '+' + diff.toFixed(2) + 's';
+        }
+
+        let html = ca ? `<p class="mt-3 mb-2 text-sm text-gray-300">Correct answer: <span class="font-semibold text-green-400">${escapeHtml(ca)}</span></p>` : '';
+
+        if (top3.length > 0) {
+          const medals = ['🥇', '🥈', '🥉'];
+          const bgColors = ['bg-yellow-500/10 border-yellow-500/30 shadow-[0_0_30px_rgba(255,215,0,0.2)]', 'bg-gray-400/10 border-gray-400/30', 'bg-amber-700/10 border-amber-700/30'];
+          const textColors = ['text-yellow-300', 'text-gray-300', 'text-amber-400'];
+
+          top3.forEach((p, idx) => {
+            const respTime = formatResponseTime(p.submittedAt);
+            const split = idx > 0 ? timeSplit(top3[0].submittedAt, p.submittedAt) : '';
+            const clickAttr = idx === 0 ? `onclick="showTrophy('${escapeAttr(p.name)}')" cursor-pointer` : '';
+            html += `<div class="my-2 p-4 rounded-xl ${bgColors[idx]} border flex items-center gap-3 hover:bg-white/5 transition-all ${clickAttr}">
+              <span class="text-3xl">${medals[idx]}</span>
+              <div class="flex-1">
+                <p class="${textColors[idx]} font-bold text-lg">${idx === 0 ? 'Winner' : (idx === 1 ? '2nd Place' : '3rd Place')}: ${escapeHtml(p.name)}</p>
+                <p class="text-gray-400 text-sm">${idx === 0 ? 'First correct answer! Click to celebrate 🎉' : 'Backup winner'}</p>
+              </div>
+              <div class="text-right">
+                <p class="text-sm font-mono tabular-nums ${textColors[idx]}">${respTime}</p>
+                ${split ? `<p class="text-xs font-mono tabular-nums text-gray-500">${split} behind</p>` : ''}
+              </div>
+            </div>`;
+          });
+        } else {
+          html += `<div class="my-4 p-4 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center gap-3">
+            <span class="text-2xl">😅</span>
+            <p class="text-red-300 font-medium">No correct answers yet!</p>
+          </div>`;
+        }
+
+        html += `<table class="w-full mt-3 border-collapse"><thead><tr><th class="px-3 py-2.5 text-left border-b border-white/10 bg-white/5 font-semibold text-gray-300 text-sm">#</th><th class="px-3 py-2.5 text-left border-b border-white/10 bg-white/5 font-semibold text-gray-300 text-sm">Name</th><th class="px-3 py-2.5 text-left border-b border-white/10 bg-white/5 font-semibold text-gray-300 text-sm">Answer</th><th class="px-3 py-2.5 text-left border-b border-white/10 bg-white/5 font-semibold text-gray-300 text-sm">Result</th><th class="px-3 py-2.5 text-left border-b border-white/10 bg-white/5 font-semibold text-gray-300 text-sm">⏱️ Response</th></tr></thead><tbody>`;
+        data.results.forEach((r, i) => {
+          const icon = r.isCorrect ? '✅' : '❌';
+          const topIdx = top3.findIndex(t => t.name === r.name && t.submittedAt === r.submittedAt);
+          const isTop3 = topIdx >= 0;
+          const medals3 = ['🥇', '🥈', '🥉'];
+          const rowClass = topIdx === 0 ? 'bg-yellow-500/10 font-semibold' : topIdx === 1 ? 'bg-gray-400/5' : topIdx === 2 ? 'bg-amber-700/5' : 'hover:bg-white/5';
+          const nameColor = topIdx === 0 ? 'text-yellow-300' : topIdx === 1 ? 'text-gray-300' : topIdx === 2 ? 'text-amber-400' : 'text-gray-300';
+          const respTime = formatResponseTime(r.submittedAt);
+          html += `<tr class="${rowClass}"><td class="px-3 py-2.5 border-b border-white/5 text-sm text-gray-300">${isTop3 ? medals3[topIdx] : (i + 1)}</td><td class="px-3 py-2.5 border-b border-white/5 text-sm ${nameColor}">${escapeHtml(r.name)}</td><td class="px-3 py-2.5 border-b border-white/5 text-sm text-gray-300">${escapeHtml(r.answer)}</td><td class="px-3 py-2.5 border-b border-white/5 text-sm text-gray-300">${icon}</td><td class="px-3 py-2.5 border-b border-white/5 text-sm tabular-nums ${isTop3 ? nameColor : 'text-cyan-300'}">${respTime}</td></tr>`;
+        });
+        html += `</tbody></table>`;
+        area.innerHTML = html;
+
+        // Auto-show trophy for the winner
+        if (winner) showTrophy(winner.name);
+
+      } catch (e) {
+        area.innerHTML = `<div class="px-4 py-3 rounded-lg font-medium bg-red-500/15 text-red-300 border border-red-500/30">Error loading results.</div>`;
+      }
+    }
+
+    function showTrophy(winnerName) {
+      // Remove any existing overlay
+      const existing = document.getElementById("trophy-overlay");
+      if (existing) existing.remove();
+
+      const overlay = document.createElement("div");
+      overlay.id = "trophy-overlay";
+      overlay.className = "trophy-overlay";
+      overlay.onclick = (e) => { if (e.target === overlay) dismissTrophy(); };
+      overlay.innerHTML = `
+        <div class="trophy-card">
+          <div class="trophy-icon">🏆</div>
+          <h2 class="text-3xl font-bold text-white mt-4 mb-2">We Have a Winner!</h2>
+          <p class="text-5xl font-extrabold bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-500 bg-clip-text text-transparent my-4">${escapeHtml(winnerName)}</p>
+          <p class="text-gray-300 text-lg mb-6">🎉 First correct answer! Congratulations! 🎉</p>
+          <button onclick="dismissTrophy()" class="px-6 py-2.5 bg-yellow-500/20 text-yellow-300 border border-yellow-500/40 rounded-lg font-semibold hover:bg-yellow-500/30 transition-all">Close</button>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+      spawnConfetti();
+    }
+
+    function dismissTrophy() {
+      const overlay = document.getElementById("trophy-overlay");
+      if (overlay) { overlay.style.opacity = '0'; overlay.style.transition = 'opacity 0.3s'; setTimeout(() => overlay.remove(), 300); }
+      document.querySelectorAll('.confetti-piece').forEach(c => c.remove());
+    }
+
+    function spawnConfetti() {
+      const colors = ['#FFD700','#FF6B6B','#4ECDC4','#45B7D1','#96E6A1','#DDA0DD','#F0E68C','#FF69B4','#00CED1','#FFA500'];
+      const shapes = ['circle','square','strip'];
+      for (let i = 0; i < 80; i++) {
+        const piece = document.createElement('div');
+        piece.className = 'confetti-piece';
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const shape = shapes[Math.floor(Math.random() * shapes.length)];
+        const size = Math.random() * 8 + 6;
+        piece.style.left = Math.random() * 100 + 'vw';
+        piece.style.background = color;
+        piece.style.width = shape === 'strip' ? size/3 + 'px' : size + 'px';
+        piece.style.height = shape === 'strip' ? size*2.5 + 'px' : size + 'px';
+        piece.style.borderRadius = shape === 'circle' ? '50%' : '2px';
+        piece.style.animationDuration = (Math.random() * 2 + 2) + 's';
+        piece.style.animationDelay = Math.random() * 1.5 + 's';
+        document.body.appendChild(piece);
+      }
+      setTimeout(() => document.querySelectorAll('.confetti-piece').forEach(c => c.remove()), 5000);
+    }
+
+    function escapeAttr(str) {
+      return str.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    }
+
+    async function generateQuestion() {
+      const msgEl = document.getElementById("action-msg");
+      msgEl.innerHTML = `<div class="px-4 py-3 rounded-lg font-medium bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 animate-pulse">🤖 Generating question...</div>`;
+      try {
+        const res = await fetch(`${API_BASE}/manage/generate`, {
+          method: "POST",
+          headers: getHeaders(),
+        });
+        const data = await res.json();
+        if (!res.ok) { msgEl.innerHTML = `<div class="px-4 py-3 rounded-lg font-medium bg-red-500/15 text-red-300 border border-red-500/30">❌ ${escapeHtml(data.error)}</div>`; return; }
+
+        // Fill in the question
+        document.getElementById("question-text").value = data.question;
+
+        // Rebuild options
+        const container = document.getElementById("options-container");
+        container.innerHTML = "";
+        data.options.forEach((opt, i) => {
+          const row = document.createElement("div");
+          row.className = "flex gap-2 items-center mb-2";
+          const isCorrect = opt === data.correctAnswer;
+          row.innerHTML = `<input type="radio" name="correctAnswer" value="${i+1}" class="correct-radio w-4 h-4 accent-green-500" title="Mark as correct answer" data-testid="correct-radio" ${isCorrect ? 'checked' : ''}><input type="text" value="${escapeHtml(opt)}" class="opt-input flex-1 px-3.5 py-2.5 bg-white/10 border border-white/20 rounded-lg text-base text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" data-testid="option-input"><button class="text-red-400 text-xl px-2 hover:text-red-300" onclick="this.parentElement.remove()" title="Remove">&times;</button>`;
+          container.appendChild(row);
+        });
+
+        msgEl.innerHTML = `<div class="px-4 py-3 rounded-lg font-medium bg-green-500/15 text-green-300 border border-green-500/30 shadow-glow-green">🤖 Question generated! (${data.remaining} remaining in bank) — Review and click Open.</div>`;
+      } catch (e) {
+        msgEl.innerHTML = `<div class="px-4 py-3 rounded-lg font-medium bg-red-500/15 text-red-300 border border-red-500/30">Network error.</div>`;
+      }
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement("div");
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // --- Survey Results ---
+    let surveyData = [];
+    let surveyCharts = {};
+    let surveyIsOpen = false;
+
+    async function loadSurveyStatus() {
+      try {
+        const res = await fetch(`${API_BASE}/survey/status`);
+        const data = await res.json();
+        surveyIsOpen = data.isOpen;
+        const toggle = document.getElementById('survey-toggle');
+        const label = document.getElementById('survey-toggle-label');
+        if (toggle) toggle.checked = surveyIsOpen;
+        if (label) {
+          label.textContent = surveyIsOpen ? 'Open' : 'Closed';
+          label.className = surveyIsOpen
+            ? 'text-sm font-semibold text-green-300'
+            : 'text-sm font-semibold text-red-300';
+        }
+      } catch (e) { /* ignore */ }
+    }
+
+    async function toggleSurvey(open) {
+      try {
+        const endpoint = open ? 'manage/survey/open' : 'manage/survey/close';
+        const res = await fetch(`${API_BASE}/${endpoint}`, { method: 'POST', headers: getHeaders() });
+        if (res.ok) {
+          loadSurveyStatus();
+        }
+      } catch (e) { /* ignore */ }
+    }
+
+    async function clearSurveyResults() {
+      if (!confirm('Are you sure you want to delete ALL survey responses? This cannot be undone.')) return;
+      try {
+        const res = await fetch(`${API_BASE}/manage/survey/clear`, { method: 'POST', headers: getHeaders() });
+        if (res.ok) {
+          surveyData = [];
+          document.getElementById('survey-results-area').innerHTML = '<p class="text-gray-400">No survey responses yet.</p>';
+          const countEl = document.getElementById('survey-response-count');
+          if (countEl) countEl.textContent = '0 responses';
+        } else {
+          alert('Failed to clear survey results.');
+        }
+      } catch (e) { alert('Error clearing survey results.'); }
+    }
+
+    const SURVEY_QUESTIONS = {
+      q1: { label: "Experience With Topic Before Hackathon", options: ["No experience", "Beginner", "Intermediate", "Advanced"] },
+      q2: { label: "Most Valuable Part", options: ["Hands-on labs", "Group collaboration", "Expert guidance", "Problem solving", "Presentations"] },
+      q3: { label: "Most Challenging", options: ["Understanding the concepts", "Setting up the environment", "Completing the exercises", "Time management", "Troubleshooting issues"] },
+      q4: { label: "Confidence After Hackathon", options: ["Not confident", "Somewhat confident", "Confident", "Very confident"] },
+      q5: { label: "Future Hackathon Topics (multi-select)", options: ["Kubernetes & containers", "AI & OpenAI integration", "DevSecOps & security", "Serverless architecture", "App Modernisation with GitHub Copilot", "GitHub Copilot CLI"], multi: true },
+      q6: { label: "Overall Satisfaction", options: ["1 ⭐", "2 ⭐⭐", "3 ⭐⭐⭐", "4 ⭐⭐⭐⭐", "5 ⭐⭐⭐⭐⭐"] },
+      q7: { label: "GitHub Copilot Experience", options: ["Didn't use it", "Used it but wasn't helpful", "Somewhat helpful", "Very helpful - saved me time", "Game changer - couldn't have done it without it"] }
+    };
+
+    const CHART_COLORS = [
+      'rgba(59,130,246,0.8)', 'rgba(168,85,247,0.8)', 'rgba(34,197,94,0.8)',
+      'rgba(234,179,8,0.8)', 'rgba(239,68,68,0.8)', 'rgba(6,182,212,0.8)'
+    ];
+
+    function countResponses(results, key, options, multi) {
+      const counts = {};
+      options.forEach(o => counts[o] = 0);
+      results.forEach(r => {
+        let val = r[key];
+        if (key === 'q6') { val = val + ' ' + '⭐'.repeat(val); }
+        if (multi && typeof val === 'string') {
+          val.split(', ').forEach(v => { if (counts[v] !== undefined) counts[v]++; });
+        } else {
+          if (counts[val] !== undefined) counts[val]++;
+        }
+      });
+      return counts;
+    }
+
+    async function loadSurveyResults() {
+      const area = document.getElementById("survey-results-area");
+      try {
+        const res = await fetch(`${API_BASE}/survey/results`, { headers: getHeaders() });
+        if (!res.ok) { area.innerHTML = `<div class="px-4 py-3 rounded-lg font-medium bg-red-500/15 text-red-300 border border-red-500/30">Error loading survey data.</div>`; return; }
+        const data = await res.json();
+        surveyData = data.results;
+        const countEl = document.getElementById('survey-response-count');
+        if (countEl) countEl.textContent = `${surveyData.length} responses`;
+
+        if (surveyData.length === 0) {
+          area.innerHTML = `<p class="text-gray-400">No survey responses yet.</p>`;
+          return;
+        }
+
+        // Avg satisfaction
+        const avgRating = (surveyData.reduce((s, r) => s + r.q6, 0) / surveyData.length).toFixed(1);
+
+        let html = `<div class="flex items-center gap-4 mb-6 mt-2">
+          <div class="glass rounded-xl px-5 py-3 text-center">
+            <p class="text-3xl font-bold text-white">${surveyData.length}</p>
+            <p class="text-xs text-gray-400">Responses</p>
+          </div>
+          <div class="glass rounded-xl px-5 py-3 text-center">
+            <p class="text-3xl font-bold text-yellow-300">${avgRating} ⭐</p>
+            <p class="text-xs text-gray-400">Avg Satisfaction</p>
+          </div>
+        </div>`;
+
+        // Chart containers
+        const qKeys = ['q1','q2','q3','q4','q5','q6','q7'];
+        qKeys.forEach(key => {
+          html += `<div class="mb-6"><h3 class="text-sm font-semibold text-gray-300 mb-2">${SURVEY_QUESTIONS[key].label}</h3><div style="max-height:260px"><canvas id="chart-${key}"></canvas></div></div>`;
+        });
+
+        // "Why" responses for Q3
+        const q3whys = surveyData.filter(r => r.q3why).map(r => ({ answer: r.q3, why: r.q3why }));
+        if (q3whys.length > 0) {
+          html += `<div class="mt-6"><h3 class="text-sm font-semibold text-gray-300 mb-3">❓ "Most Challenging" — Why? (${q3whys.length})</h3>`;
+          q3whys.forEach(item => {
+            html += `<div class="p-3 mb-2 rounded-lg bg-white/5 border border-white/10 text-sm text-gray-300"><span class="text-blue-300 font-semibold">${escapeHtml(item.answer)}:</span> ${escapeHtml(item.why)}</div>`;
+          });
+          html += `</div>`;
+        }
+
+        // Written feedback
+        const feedbacks = surveyData.filter(r => r.q8).map(r => r.q8);
+        if (feedbacks.length > 0) {
+          html += `<div class="mt-6"><h3 class="text-sm font-semibold text-gray-300 mb-3">💬 Written Feedback (${feedbacks.length})</h3>`;
+          feedbacks.forEach(fb => {
+            html += `<div class="p-3 mb-2 rounded-lg bg-white/5 border border-white/10 text-sm text-gray-300">${escapeHtml(fb)}</div>`;
+          });
+          html += `</div>`;
+        }
+
+        area.innerHTML = html;
+
+        // Destroy old charts
+        Object.values(surveyCharts).forEach(c => c.destroy());
+        surveyCharts = {};
+
+        // Render charts
+        qKeys.forEach(key => {
+          const q = SURVEY_QUESTIONS[key];
+          const counts = countResponses(surveyData, key, q.options, q.multi);
+          const ctx = document.getElementById(`chart-${key}`).getContext('2d');
+          const isSmall = q.options.length <= 5;
+
+          surveyCharts[key] = new Chart(ctx, {
+            type: isSmall && key !== 'q6' ? 'doughnut' : 'bar',
+            data: {
+              labels: q.options,
+              datasets: [{
+                data: q.options.map(o => counts[o]),
+                backgroundColor: CHART_COLORS.slice(0, q.options.length),
+                borderColor: 'rgba(255,255,255,0.1)',
+                borderWidth: 1,
+                borderRadius: key === 'q6' || !isSmall ? 6 : 0,
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: true,
+              plugins: {
+                legend: { display: isSmall && key !== 'q6', position: 'right', labels: { color: '#d1d5db', font: { size: 11 }, padding: 10 } },
+              },
+              scales: isSmall && key !== 'q6' ? {} : {
+                x: { ticks: { color: '#9ca3af', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                y: { beginAtZero: true, ticks: { color: '#9ca3af', stepSize: 1 }, grid: { color: 'rgba(255,255,255,0.05)' } }
+              }
+            }
+          });
+        });
+
+      } catch (e) {
+        area.innerHTML = `<div class="px-4 py-3 rounded-lg font-medium bg-red-500/15 text-red-300 border border-red-500/30">Error loading survey data.</div>`;
+      }
+    }
+
+    function exportSurveyExcel() {
+      if (!surveyData.length) { alert('No survey data to export. Load results first.'); return; }
+
+      const rows = surveyData.map(r => ({
+        'Topic Experience': r.q1,
+        'Most Valuable Part': r.q2,
+        'Most Challenging': r.q3,
+        'Challenge - Why': r.q3why || '',
+        'Confidence After': r.q4,
+        'Future Topics': r.q5,
+        'Satisfaction (1-5)': r.q6,
+        'GitHub Copilot Experience': r.q7,
+        'Additional Feedback': r.q8 || '',
+        'Submitted At': r.submittedAt,
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Survey Results");
+
+      // Auto-width columns
+      const colWidths = Object.keys(rows[0]).map(k => ({ wch: Math.max(k.length, ...rows.map(r => String(r[k]).length)) + 2 }));
+      ws['!cols'] = colWidths;
+
+      XLSX.writeFile(wb, `hackathon-survey-${new Date().toISOString().slice(0,10)}.xlsx`);
+    }
+
+    async function exportSurveyPDF() {
+      if (!surveyData.length) { alert('No survey data to export. Load results first.'); return; }
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF('p', 'mm', 'a4');
+      const pageW = doc.internal.pageSize.getWidth();
+      const margin = 15;
+      let y = 20;
+
+      // --- Title ---
+      doc.setFontSize(22);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(30, 30, 80);
+      doc.text('Microsoft × Suncorp Hackathon', pageW / 2, y, { align: 'center' });
+      y += 10;
+      doc.setFontSize(16);
+      doc.setTextColor(80, 80, 140);
+      doc.text('Survey Results Report', pageW / 2, y, { align: 'center' });
+      y += 8;
+      doc.setFontSize(10);
+      doc.setTextColor(120, 120, 120);
+      doc.text(`Generated: ${new Date().toLocaleDateString()} • ${surveyData.length} responses`, pageW / 2, y, { align: 'center' });
+      y += 4;
+      doc.setDrawColor(100, 100, 200);
+      doc.setLineWidth(0.5);
+      doc.line(margin, y, pageW - margin, y);
+      y += 10;
+
+      // --- Executive Summary ---
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(30, 30, 80);
+      doc.text('Executive Summary', margin, y);
+      y += 8;
+
+      const avgRating = (surveyData.reduce((s, r) => s + r.q6, 0) / surveyData.length).toFixed(1);
+      const topExperience = getTopAnswer(surveyData, 'q1');
+      const topChallenge = getTopAnswer(surveyData, 'q2');
+      const topHardest = getTopAnswer(surveyData, 'q3');
+      const topConfidence = getTopAnswer(surveyData, 'q4');
+      const topCopilot = getTopAnswer(surveyData, 'q7');
+
+      // Top future topics (multi-select)
+      const topicCounts = {};
+      surveyData.forEach(r => {
+        if (r.q5) r.q5.split(', ').forEach(t => { topicCounts[t] = (topicCounts[t] || 0) + 1; });
+      });
+      const topTopics = Object.entries(topicCounts).sort((a, b) => b[1] - a[1]).slice(0, 3).map(e => e[0]);
+
+      const summaryLines = [
+        `Total Responses: ${surveyData.length}`,
+        `Overall Satisfaction: ${avgRating}/5.0 stars`,
+        `Most Common Experience Level: ${topExperience}`,
+        `Most Valuable Part: ${topChallenge}`,
+        `Most Challenging: ${topHardest}`,
+        `Confidence After Hackathon: ${topConfidence}`,
+        `GitHub Copilot Sentiment: ${topCopilot}`,
+        `Top Requested Future Topics: ${topTopics.join(', ')}`,
+      ];
+
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(50, 50, 50);
+      summaryLines.forEach(line => {
+        doc.text(`• ${line}`, margin + 2, y);
+        y += 6;
+      });
+      y += 4;
+
+      // Satisfaction insight
+      const satisfied = surveyData.filter(r => r.q6 >= 4).length;
+      const satisfiedPct = ((satisfied / surveyData.length) * 100).toFixed(0);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(30, 100, 60);
+      doc.text(`${satisfiedPct}% of participants rated the hackathon 4 or 5 stars.`, margin + 2, y);
+      y += 10;
+
+      // --- Detailed Breakdown ---
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(30, 30, 80);
+      doc.text('Detailed Breakdown', margin, y);
+      y += 8;
+
+      const qKeys = ['q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7'];
+      for (const key of qKeys) {
+        const q = SURVEY_QUESTIONS[key];
+        const counts = countResponses(surveyData, key, q.options, q.multi);
+
+        // Check if we need a new page
+        if (y + 10 + q.options.length * 7 > 280) {
+          doc.addPage();
+          y = 20;
+        }
+
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(50, 50, 120);
+        doc.text(q.label, margin, y);
+        y += 6;
+
+        const tableData = q.options.map(opt => {
+          const count = counts[opt];
+          const pct = surveyData.length > 0 ? ((count / surveyData.length) * 100).toFixed(0) : 0;
+          return [opt, count.toString(), `${pct}%`];
+        });
+
+        doc.autoTable({
+          startY: y,
+          head: [['Option', 'Count', '%']],
+          body: tableData,
+          margin: { left: margin, right: margin },
+          styles: { fontSize: 9, cellPadding: 2 },
+          headStyles: { fillColor: [59, 130, 246], textColor: 255, fontStyle: 'bold' },
+          alternateRowStyles: { fillColor: [240, 240, 255] },
+          theme: 'grid',
+        });
+
+        y = doc.lastAutoTable.finalY + 8;
+      }
+
+      // --- Written Feedback ---
+      const feedbacks = surveyData.filter(r => r.q8).map(r => r.q8);
+      if (feedbacks.length > 0) {
+        if (y + 20 > 270) { doc.addPage(); y = 20; }
+
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(30, 30, 80);
+        doc.text(`Written Feedback (${feedbacks.length})`, margin, y);
+        y += 8;
+
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(50, 50, 50);
+
+        feedbacks.forEach((fb, i) => {
+          const lines = doc.splitTextToSize(`${i + 1}. "${fb}"`, pageW - 2 * margin);
+          if (y + lines.length * 4.5 > 280) { doc.addPage(); y = 20; }
+          doc.text(lines, margin, y);
+          y += lines.length * 4.5 + 3;
+        });
+      }
+
+      // --- Footer on each page ---
+      const totalPages = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text(`Microsoft × Suncorp Hackathon 2026 • Page ${i} of ${totalPages}`, pageW / 2, 290, { align: 'center' });
+      }
+
+      doc.save(`hackathon-survey-report-${new Date().toISOString().slice(0, 10)}.pdf`);
+    }
+
+    function getTopAnswer(data, key) {
+      const counts = {};
+      data.forEach(r => { const v = r[key]; if (v) counts[v] = (counts[v] || 0) + 1; });
+      const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+      return sorted.length > 0 ? `${sorted[0][0]} (${((sorted[0][1] / data.length) * 100).toFixed(0)}%)` : 'N/A';
+    }
+
+    // --- Settings ---
+    let appSettings = { organisationName: '', hackathonName: '', timerSeconds: 15, customerLogo: '' };
+    let pendingLogoBase64 = null;
+
+    async function loadSettings() {
+      try {
+        const res = await fetch(`${API_BASE}/settings`);
+        if (res.ok) {
+          appSettings = await res.json();
+          document.getElementById('setting-org-name').value = appSettings.organisationName || '';
+          document.getElementById('setting-hack-name').value = appSettings.hackathonName || '';
+          document.getElementById('setting-timer').value = appSettings.timerSeconds || 15;
+          document.getElementById('timer-value').textContent = (appSettings.timerSeconds || 15) + 's';
+          pendingLogoBase64 = null;
+          const preview = document.getElementById('logo-preview');
+          if (appSettings.customerLogo) {
+            preview.innerHTML = `<img src="${appSettings.customerLogo}" class="w-full h-full object-contain p-1">`;
+          } else {
+            preview.innerHTML = '<span class="text-gray-500 text-xs">No logo</span>';
+          }
+        }
+      } catch (e) { /* ignore */ }
+    }
+
+    function previewLogo(input) {
+      const file = input.files[0];
+      if (!file) return;
+      if (file.size > 500 * 1024) {
+        alert('Logo must be under 500KB.');
+        input.value = '';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        pendingLogoBase64 = e.target.result;
+        document.getElementById('logo-preview').innerHTML = `<img src="${pendingLogoBase64}" class="w-full h-full object-contain p-1">`;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function clearLogo() {
+      pendingLogoBase64 = '';
+      document.getElementById('logo-preview').innerHTML = '<span class="text-gray-500 text-xs">No logo</span>';
+      document.getElementById('setting-logo').value = '';
+    }
+
+    async function saveSettings() {
+      const msgEl = document.getElementById('settings-msg');
+      const payload = {
+        organisationName: document.getElementById('setting-org-name').value.trim(),
+        hackathonName: document.getElementById('setting-hack-name').value.trim(),
+        timerSeconds: parseInt(document.getElementById('setting-timer').value) || 15,
+      };
+      if (pendingLogoBase64 !== null) {
+        payload.customerLogo = pendingLogoBase64;
+      }
+      try {
+        const res = await fetch(`${API_BASE}/manage/settings`, {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          appSettings = { ...appSettings, ...payload };
+          if (pendingLogoBase64 !== null) appSettings.customerLogo = pendingLogoBase64;
+          pendingLogoBase64 = null;
+          applySettingsToPage();
+          msgEl.innerHTML = `<div class="px-4 py-3 rounded-lg font-medium bg-green-500/15 text-green-300 border border-green-500/30">✅ Settings saved successfully.</div>`;
+        } else {
+          msgEl.innerHTML = `<div class="px-4 py-3 rounded-lg font-medium bg-red-500/15 text-red-300 border border-red-500/30">❌ ${data.error}</div>`;
+        }
+      } catch (e) {
+        msgEl.innerHTML = `<div class="px-4 py-3 rounded-lg font-medium bg-red-500/15 text-red-300 border border-red-500/30">Network error.</div>`;
+      }
+    }
+
+    function applySettingsToPage() {
+      const title = [appSettings.organisationName, appSettings.hackathonName].filter(Boolean).join(' — ');
+      if (title) document.querySelector('header h1').textContent = '🛠️ ' + title + ' Admin';
+      const logoContainer = document.getElementById('header-customer-logo');
+      if (logoContainer) {
+        if (appSettings.customerLogo) {
+          logoContainer.innerHTML = `<img src="${appSettings.customerLogo}" alt="Logo" class="h-9 brightness-110">`;
+          logoContainer.classList.remove('hidden');
+        } else {
+          logoContainer.classList.add('hidden');
+        }
+      }
+    }
+
+    // Load settings on page init
+    (async function initSettings() {
+      try {
+        const res = await fetch(`${API_BASE}/settings`);
+        if (res.ok) {
+          appSettings = await res.json();
+          applySettingsToPage();
+        }
+      } catch (e) { /* ignore */ }
+    })();
+  </script>
+</body>
+</html>
+
+
+
+

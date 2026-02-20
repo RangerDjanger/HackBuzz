@@ -1,0 +1,16 @@
+{
+  "name": "suncorphackquick",
+  "version": "1.0.0",
+  "description": "A simple real-time quiz application for hackathon events, built with vanilla HTML/CSS/JavaScript and Azure Functions.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@playwright/test": "^1.58.2"
+  }
+}

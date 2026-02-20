@@ -1,0 +1,10 @@
+require("./src/functions/question");
+require("./src/functions/submit");
+require("./src/functions/adminOpen");
+require("./src/functions/adminClose");
+require("./src/functions/adminResults");
+require("./src/functions/generateQuestion");
+require("./src/functions/surveySubmit");
+require("./src/functions/surveyResults");
+require("./src/functions/surveyState");
+require("./src/functions/settings");

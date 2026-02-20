@@ -1,0 +1,13 @@
+{
+  "name": "suncorp-hack-quiz-api",
+  "version": "1.0.0",
+  "description": "Azure Functions backend for SunCorp Hackathon Quiz",
+  "main": "index.js",
+  "scripts": {
+    "start": "func start"
+  },
+  "dependencies": {
+    "@azure/data-tables": "^13.2.2",
+    "@azure/functions": "^4.5.0"
+  }
+}

@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hackathon Survey - SunCorp</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{boxShadow:{'glow':'0 0 25px rgba(59,130,246,0.5), 0 0 50px rgba(59,130,246,0.2)','glow-green':'0 0 25px rgba(34,197,94,0.5)','glow-purple':'0 0 25px rgba(168,85,247,0.5)','glow-sm':'0 0 15px rgba(59,130,246,0.3)'}}}}</script>
+  <style>
+    body { background: linear-gradient(135deg, #0f0c29 0%, #1a1a3e 40%, #24243e 100%); }
+    .glass { background: rgba(255,255,255,0.06); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.1); }
+    .glass-header { background: rgba(0,0,0,0.3); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .star-btn { cursor: pointer; font-size: 2.75rem; transition: all 0.15s; filter: grayscale(1) opacity(0.4); }
+    .star-btn:hover, .star-btn.active { filter: grayscale(0) opacity(1); transform: scale(1.15); }
+    .chip { cursor: pointer; }
+    .chip-label { display: inline-block; padding: 0.55rem 1.1rem; border-radius: 9999px; font-size: 1rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); color: #9ca3af; transition: all 0.15s; }
+    .chip-label:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.3); color: #e5e7eb; }
+    @keyframes badgeAppear { 0% { transform: scale(0) rotate(-30deg); opacity: 0; } 60% { transform: scale(1.15) rotate(5deg); } 100% { transform: scale(1) rotate(0); opacity: 1; } }
+    .animate-badge-appear { animation: badgeAppear 0.8s cubic-bezier(0.34,1.56,0.64,1) 0.3s both; }
+  </style>
+</head>
+<body class="text-gray-100 min-h-screen flex flex-col font-sans">
+  <header class="glass-header text-white px-6 py-4 flex items-center gap-4">
+    <h1 class="text-2xl font-semibold" id="survey-title">📋 Hackathon Feedback Survey</h1>
+    <div class="flex items-center gap-3 ml-auto">
+      <span id="header-customer-logo" class="hidden"></span>
+      <img src="images/microsoft-logo.png" alt="Microsoft" class="h-9 brightness-110">
+    </div>
+  </header>
+
+  <main class="max-w-4xl mx-auto w-full px-5 py-6 flex-1">
+    <div id="survey-form">
+      <p class="text-gray-400 mb-5 text-base">Your responses are completely anonymous. Help us make future hackathons even better!</p>
+
+      <!-- Q1 -->
+      <div class="glass rounded-xl p-5 mb-4">
+        <h3 class="font-semibold text-blue-200 text-base mb-3">1. Your experience with today's topic before the hackathon?</h3>
+        <div class="flex flex-wrap gap-2">
+          <label class="chip"><input type="radio" name="q1" value="No experience" class="hidden peer"><span class="chip-label peer-checked:bg-blue-500/30 peer-checked:border-blue-400 peer-checked:text-blue-200">No experience</span></label>
+          <label class="chip"><input type="radio" name="q1" value="Beginner" class="hidden peer"><span class="chip-label peer-checked:bg-blue-500/30 peer-checked:border-blue-400 peer-checked:text-blue-200">Beginner</span></label>
+          <label class="chip"><input type="radio" name="q1" value="Intermediate" class="hidden peer"><span class="chip-label peer-checked:bg-blue-500/30 peer-checked:border-blue-400 peer-checked:text-blue-200">Intermediate</span></label>
+          <label class="chip"><input type="radio" name="q1" value="Advanced" class="hidden peer"><span class="chip-label peer-checked:bg-blue-500/30 peer-checked:border-blue-400 peer-checked:text-blue-200">Advanced</span></label>
+        </div>
+      </div>
+
+      <!-- Q2 -->
+      <div class="glass rounded-xl p-5 mb-4">
+        <h3 class="font-semibold text-blue-200 text-base mb-3">2. Most valuable part of the hackathon?</h3>
+        <div class="flex flex-wrap gap-2">
+          <label class="chip"><input type="radio" name="q2" value="Hands-on labs" class="hidden peer"><span class="chip-label peer-checked:bg-blue-500/30 peer-checked:border-blue-400 peer-checked:text-blue-200">Hands-on labs</span></label>
+          <label class="chip"><input type="radio" name="q2" value="Group collaboration" class="hidden peer"><span class="chip-label peer-checked:bg-blue-500/30 peer-checked:border-blue-400 peer-checked:text-blue-200">Group collaboration</span></label>
+          <label class="chip"><input type="radio" name="q2" value="Expert guidance" class="hidden peer"><span class="chip-label peer-checked:bg-blue-500/30 peer-checked:border-blue-400 peer-checked:text-blue-200">Expert guidance</span></label>
+          <label class="chip"><input type="radio" name="q2" value="Problem solving" class="hidden peer"><span class="chip-label peer-checked:bg-blue-500/30 peer-checked:border-blue-400 peer-checked:text-blue-200">Problem solving</span></label>
+          <label class="chip"><input type="radio" name="q2" value="Presentations" class="hidden peer"><span class="chip-label peer-checked:bg-blue-500/30 peer-checked:border-blue-400 peer-checked:text-blue-200">Presentations</span></label>
+        </div>
+      </div>
+
+      <!-- Q3 -->
+      <div class="glass rounded-xl p-5 mb-4">
+        <h3 class="font-semibold text-blue-200 text-base mb-3">3. What was most challenging? <span class="text-gray-500 font-normal">(Optional)</span></h3>
+        <div class="flex flex-wrap gap-2">
+          <label class="chip"><input type="radio" name="q3" value="Understanding the concepts" class="hidden peer"><span class="chip-label peer-checked:bg-blue-500/30 peer-checked:border-blue-400 peer-checked:text-blue-200">Understanding concepts</span></label>
+          <label class="chip"><input type="radio" name="q3" value="Setting up the environment" class="hidden peer"><span class="chip-label peer-checked:bg-blue-500/30 peer-checked:border-blue-400 peer-checked:text-blue-200">Setting up environment</span></label>
+          <label class="chip"><input type="radio" name="q3" value="Completing the exercises" class="hidden peer"><span class="chip-label peer-checked:bg-blue-500/30 peer-checked:border-blue-400 peer-checked:text-blue-200">Completing exercises</span></label>
+          <label class="chip"><input type="radio" name="q3" value="Time management" class="hidden peer"><span class="chip-label peer-checked:bg-blue-500/30 peer-checked:border-blue-400 peer-checked:text-blue-200">Time management</span></label>
+          <label class="chip"><input type="radio" name="q3" value="Troubleshooting issues" class="hidden peer"><span class="chip-label peer-checked:bg-blue-500/30 peer-checked:border-blue-400 peer-checked:text-blue-200">Troubleshooting</span></label>
+        </div>
+        <div class="mt-3">
+          <label class="text-sm text-gray-400 mb-1 block">Why?</label>
+          <input type="text" id="q3-why" placeholder="Tell us more..." maxlength="500"
+            class="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-base text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+      </div>
+
+      <!-- Q4 -->
+      <div class="glass rounded-xl p-5 mb-4">
+        <h3 class="font-semibold text-blue-200 text-base mb-3">4. Confidence with today's topic after the hackathon?</h3>
+        <div class="flex flex-wrap gap-2">
+          <label class="chip"><input type="radio" name="q4" value="Not confident" class="hidden peer"><span class="chip-label peer-checked:bg-blue-500/30 peer-checked:border-blue-400 peer-checked:text-blue-200">Not confident</span></label>
+          <label class="chip"><input type="radio" name="q4" value="Somewhat confident" class="hidden peer"><span class="chip-label peer-checked:bg-blue-500/30 peer-checked:border-blue-400 peer-checked:text-blue-200">Somewhat</span></label>
+          <label class="chip"><input type="radio" name="q4" value="Confident" class="hidden peer"><span class="chip-label peer-checked:bg-blue-500/30 peer-checked:border-blue-400 peer-checked:text-blue-200">Confident</span></label>
+          <label class="chip"><input type="radio" name="q4" value="Very confident" class="hidden peer"><span class="chip-label peer-checked:bg-blue-500/30 peer-checked:border-blue-400 peer-checked:text-blue-200">Very confident</span></label>
+        </div>
+      </div>
+
+      <!-- Q5 Multi-select -->
+      <div class="glass rounded-xl p-5 mb-4">
+        <h3 class="font-semibold text-blue-200 text-base mb-3">5. Future hackathon topics? <span class="text-gray-500 font-normal">(Select all that apply)</span></h3>
+        <div class="flex flex-wrap gap-2">
+          <label class="chip"><input type="checkbox" name="q5" value="Kubernetes & containers" class="hidden peer"><span class="chip-label peer-checked:bg-purple-500/30 peer-checked:border-purple-400 peer-checked:text-purple-200">Kubernetes & containers</span></label>
+          <label class="chip"><input type="checkbox" name="q5" value="AI & OpenAI integration" class="hidden peer"><span class="chip-label peer-checked:bg-purple-500/30 peer-checked:border-purple-400 peer-checked:text-purple-200">AI & OpenAI</span></label>
+          <label class="chip"><input type="checkbox" name="q5" value="DevSecOps & security" class="hidden peer"><span class="chip-label peer-checked:bg-purple-500/30 peer-checked:border-purple-400 peer-checked:text-purple-200">DevSecOps & security</span></label>
+          <label class="chip"><input type="checkbox" name="q5" value="Serverless architecture" class="hidden peer"><span class="chip-label peer-checked:bg-purple-500/30 peer-checked:border-purple-400 peer-checked:text-purple-200">Serverless</span></label>
+          <label class="chip"><input type="checkbox" name="q5" value="App Modernisation with GitHub Copilot" class="hidden peer"><span class="chip-label peer-checked:bg-purple-500/30 peer-checked:border-purple-400 peer-checked:text-purple-200">App Modernisation + Copilot</span></label>
+          <label class="chip"><input type="checkbox" name="q5" value="GitHub Copilot CLI" class="hidden peer"><span class="chip-label peer-checked:bg-purple-500/30 peer-checked:border-purple-400 peer-checked:text-purple-200">GitHub Copilot CLI</span></label>
+        </div>
+      </div>
+
+      <!-- Q7 Copilot experience -->
+      <div class="glass rounded-xl p-5 mb-4">
+        <h3 class="font-semibold text-blue-200 text-base mb-3">6. Your experience using GitHub Copilot?</h3>
+        <div class="flex flex-wrap gap-2">
+          <label class="chip"><input type="radio" name="q7" value="Didn't use it" class="hidden peer"><span class="chip-label peer-checked:bg-blue-500/30 peer-checked:border-blue-400 peer-checked:text-blue-200">Didn't use it</span></label>
+          <label class="chip"><input type="radio" name="q7" value="Used it but wasn't helpful" class="hidden peer"><span class="chip-label peer-checked:bg-blue-500/30 peer-checked:border-blue-400 peer-checked:text-blue-200">Not helpful</span></label>
+          <label class="chip"><input type="radio" name="q7" value="Somewhat helpful" class="hidden peer"><span class="chip-label peer-checked:bg-blue-500/30 peer-checked:border-blue-400 peer-checked:text-blue-200">Somewhat helpful</span></label>
+          <label class="chip"><input type="radio" name="q7" value="Very helpful - saved me time" class="hidden peer"><span class="chip-label peer-checked:bg-blue-500/30 peer-checked:border-blue-400 peer-checked:text-blue-200">Very helpful</span></label>
+          <label class="chip"><input type="radio" name="q7" value="Game changer - couldn't have done it without it" class="hidden peer"><span class="chip-label peer-checked:bg-blue-500/30 peer-checked:border-blue-400 peer-checked:text-blue-200">Game changer 🚀</span></label>
+        </div>
+      </div>
+
+      <!-- Q8 Free text -->
+      <div class="glass rounded-xl p-5 mb-4">
+        <h3 class="font-semibold text-blue-200 text-base mb-3">7. Other feedback? <span class="text-gray-500 font-normal">(Optional)</span></h3>
+        <textarea id="q8-text" maxlength="5000" placeholder="Share your thoughts..."
+          class="w-full px-3 py-2.5 bg-white/10 border border-white/20 rounded-lg text-base text-white placeholder-gray-400 resize-y min-h-[80px] focus:outline-none focus:ring-2 focus:ring-blue-500"
+          oninput="document.getElementById('char-count').textContent = this.value.length"></textarea>
+        <p class="text-sm text-gray-500 mt-1 text-right"><span id="char-count">0</span> / 5,000</p>
+      </div>
+
+      <!-- Q6 Stars -->
+      <div class="glass rounded-xl p-5 mb-5">
+        <h3 class="font-semibold text-blue-200 text-base mb-3">8. Overall satisfaction?</h3>
+        <div class="flex gap-1 justify-center py-1" id="star-rating">
+          <span class="star-btn" data-value="1" onclick="setRating(1)">⭐</span>
+          <span class="star-btn" data-value="2" onclick="setRating(2)">⭐</span>
+          <span class="star-btn" data-value="3" onclick="setRating(3)">⭐</span>
+          <span class="star-btn" data-value="4" onclick="setRating(4)">⭐</span>
+          <span class="star-btn" data-value="5" onclick="setRating(5)">⭐</span>
+        </div>
+        <p id="rating-label" class="text-center text-gray-400 text-sm mt-2">Select a rating</p>
+      </div>
+
+      <button onclick="submitSurvey()" class="w-full px-7 py-4 bg-blue-600 text-white rounded-xl text-xl font-semibold hover:bg-blue-500 hover:shadow-glow transition-all">
+        Submit Feedback
+      </button>
+      <div id="survey-msg" class="mt-3"></div>
+    </div>
+
+    <!-- Survey Closed -->
+    <div id="survey-closed" class="hidden text-center py-16">
+      <div class="glass rounded-2xl shadow-glow-sm p-10">
+        <div class="text-5xl mb-3">🔒</div>
+        <h2 class="text-3xl font-bold text-white mb-3">Survey Closed</h2>
+        <p class="text-gray-300 text-lg">The feedback survey is not currently accepting responses.</p>
+        <p class="text-gray-400 mt-2">Please check back later or contact the event organiser.</p>
+        <a href="/" class="inline-block mt-6 px-6 py-2.5 bg-white/10 border border-white/20 rounded-lg text-gray-200 font-semibold hover:bg-white/20 transition-all">← Back to Quiz</a>
+      </div>
+    </div>
+
+    <!-- Thank You + Badge -->
+    <div id="thank-you" class="hidden text-center py-10">
+      <div class="glass rounded-2xl shadow-glow-purple p-10">
+        <div class="text-5xl mb-3">🎉</div>
+        <h2 class="text-3xl font-bold text-white mb-3">Thank You!</h2>
+        <p class="text-gray-300 text-lg">Your feedback has been submitted anonymously.</p>
+
+        <!-- Badge -->
+        <div class="my-8">
+          <p class="text-sm text-gray-400 mb-4 uppercase tracking-widest">You earned a badge!</p>
+          <div class="inline-block animate-badge-appear">
+            <img src="images/hackathon-badge.svg" alt="Hackathon Badge" class="w-64 h-64 mx-auto drop-shadow-[0_0_30px_rgba(255,215,0,0.4)]" id="badge-img">
+          </div>
+          <p class="text-yellow-300 font-bold text-lg mt-4">Microsoft × Suncorp Hackathon 2026</p>
+          <p class="text-gray-400 text-sm mt-1">Participant Badge</p>
+        </div>
+
+        <button onclick="downloadBadge()" class="px-6 py-2.5 bg-yellow-500/20 text-yellow-300 border border-yellow-500/40 rounded-lg font-semibold hover:bg-yellow-500/30 transition-all mb-3">
+          📥 Download Badge
+        </button>
+        <br>
+        <a href="/" class="inline-block mt-3 px-6 py-2.5 bg-white/10 border border-white/20 rounded-lg text-gray-200 font-semibold hover:bg-white/20 transition-all">← Back to Quiz</a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="text-center py-6 flex flex-col items-center gap-4">
+    <div class="glass rounded-xl px-6 py-3 inline-flex items-center gap-3 shadow-glow-purple">
+      <svg class="w-7 h-7 text-white" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.866-.013-1.7-2.782.604-3.369-1.341-3.369-1.341-.454-1.155-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836a9.59 9.59 0 012.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z" fill="currentColor"/></svg>
+      <span class="text-lg font-semibold text-white tracking-wide">Powered by <span class="bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent">GitHub Copilot</span></span>
+    </div>
+    <span class="text-gray-500 text-sm">&copy; 2026 Microsoft Customer Success</span>
+  </footer>
+
+  <script>
+    const API_BASE = "/api";
+    let selectedRating = 0;
+
+    function setRating(val) {
+      selectedRating = val;
+      const stars = document.querySelectorAll('.star-btn');
+      stars.forEach(s => {
+        s.classList.toggle('active', parseInt(s.dataset.value) <= val);
+      });
+      const labels = ['', 'Poor 😞', 'Fair 😐', 'Good 🙂', 'Great 😄', 'Amazing 🤩'];
+      document.getElementById('rating-label').textContent = labels[val];
+    }
+
+    // Load settings for header branding
+    (async function initSettings() {
+      try {
+        const res = await fetch(`${API_BASE}/settings`);
+        if (res.ok) {
+          const s = await res.json();
+          const title = [s.organisationName, s.hackathonName].filter(Boolean).join(' — ');
+          if (title) document.getElementById('survey-title').textContent = '📋 ' + title + ' Survey';
+          const logoEl = document.getElementById('header-customer-logo');
+          if (logoEl && s.customerLogo) {
+            logoEl.innerHTML = `<img src="${s.customerLogo}" alt="Logo" class="h-9 brightness-110">`;
+            logoEl.classList.remove('hidden');
+          }
+        }
+      } catch (e) { /* ignore */ }
+    })();
+
+    // Check if already submitted on page load, then check survey status
+    (async function init() {
+      if (localStorage.getItem('surveyCompleted')) {
+        document.getElementById('survey-form').classList.add('hidden');
+        document.getElementById('thank-you').classList.remove('hidden');
+        return;
+      }
+      // Check if survey is open
+      try {
+        const res = await fetch(`${API_BASE}/survey/status`);
+        const data = await res.json();
+        if (!data.isOpen) {
+          document.getElementById('survey-form').classList.add('hidden');
+          document.getElementById('survey-closed').classList.remove('hidden');
+          return;
+        }
+      } catch (e) { /* allow form if can't reach API */ }
+    })();
+
+    async function submitSurvey() {
+      if (localStorage.getItem('surveyCompleted')) {
+        document.getElementById('survey-form').classList.add('hidden');
+        document.getElementById('thank-you').classList.remove('hidden');
+        return;
+      }
+
+      const q1 = document.querySelector('input[name="q1"]:checked')?.value;
+      const q2 = document.querySelector('input[name="q2"]:checked')?.value;
+      const q3 = document.querySelector('input[name="q3"]:checked')?.value;
+      const q3why = (document.getElementById('q3-why').value || '').trim().substring(0, 500);
+      const q4 = document.querySelector('input[name="q4"]:checked')?.value;
+      const q5Checked = [...document.querySelectorAll('input[name="q5"]:checked')].map(c => c.value);
+      const q5 = q5Checked.length > 0 ? q5Checked.join(', ') : null;
+      const q6 = selectedRating;
+      const q7 = document.querySelector('input[name="q7"]:checked')?.value;
+      const q8 = (document.getElementById('q8-text').value || '').trim().substring(0, 5000);
+
+      const msgEl = document.getElementById('survey-msg');
+
+      if (!q1 || !q2 || !q4 || !q5 || !q6 || !q7) {
+        msgEl.innerHTML = `<div class="px-4 py-3 rounded-lg font-medium bg-red-500/15 text-red-300 border border-red-500/30">Please answer all questions before submitting.</div>`;
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/survey/submit`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ q1, q2, q3, q3why, q4, q5, q6, q7, q8 }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          localStorage.setItem('surveyCompleted', 'true');
+          document.getElementById('survey-form').classList.add('hidden');
+          document.getElementById('thank-you').classList.remove('hidden');
+        } else {
+          msgEl.innerHTML = `<div class="px-4 py-3 rounded-lg font-medium bg-red-500/15 text-red-300 border border-red-500/30">❌ ${data.error}</div>`;
+        }
+      } catch (e) {
+        msgEl.innerHTML = `<div class="px-4 py-3 rounded-lg font-medium bg-red-500/15 text-red-300 border border-red-500/30">Network error. Please try again.</div>`;
+      }
+    }
+
+    function downloadBadge() {
+      const link = document.createElement('a');
+      link.href = 'images/hackathon-badge.png';
+      link.download = 'suncorp-hackathon-2026-badge.png';
+      link.click();
+    }
+  </script>
+</body>
+</html>

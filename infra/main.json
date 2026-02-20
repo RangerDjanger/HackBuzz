@@ -1,0 +1,186 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.40.2.10011",
+      "templateHash": "12020642377396567342"
+    }
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Location for all resources"
+      }
+    },
+    "swaLocation": {
+      "type": "string",
+      "defaultValue": "eastasia",
+      "metadata": {
+        "description": "Location for Static Web App (limited region support)"
+      }
+    },
+    "uniqueSuffix": {
+      "type": "string",
+      "defaultValue": "[uniqueString(resourceGroup().id)]",
+      "metadata": {
+        "description": "Unique suffix for resource names"
+      }
+    },
+    "adminPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Admin password for quiz endpoints"
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2023-01-01",
+      "name": "[format('stquiz{0}', parameters('uniqueSuffix'))]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Standard_LRS"
+      },
+      "kind": "StorageV2",
+      "properties": {
+        "supportsHttpsTrafficOnly": true,
+        "minimumTlsVersion": "TLS1_2"
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/tableServices",
+      "apiVersion": "2023-01-01",
+      "name": "[format('{0}/{1}', format('stquiz{0}', parameters('uniqueSuffix')), 'default')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', format('stquiz{0}', parameters('uniqueSuffix')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/tableServices/tables",
+      "apiVersion": "2023-01-01",
+      "name": "[format('{0}/{1}/{2}', format('stquiz{0}', parameters('uniqueSuffix')), 'default', 'QuizState')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts/tableServices', format('stquiz{0}', parameters('uniqueSuffix')), 'default')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/tableServices/tables",
+      "apiVersion": "2023-01-01",
+      "name": "[format('{0}/{1}/{2}', format('stquiz{0}', parameters('uniqueSuffix')), 'default', 'Submissions')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts/tableServices', format('stquiz{0}', parameters('uniqueSuffix')), 'default')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2023-01-01",
+      "name": "[format('plan-quiz-{0}', parameters('uniqueSuffix'))]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Y1",
+        "tier": "Dynamic"
+      },
+      "kind": "functionapp"
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2023-01-01",
+      "name": "[format('func-quiz-{0}', parameters('uniqueSuffix'))]",
+      "location": "[parameters('location')]",
+      "kind": "functionapp",
+      "properties": {
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', format('plan-quiz-{0}', parameters('uniqueSuffix')))]",
+        "httpsOnly": true,
+        "siteConfig": {
+          "nodeVersion": "~20",
+          "cors": {
+            "allowedOrigins": [
+              "*"
+            ]
+          },
+          "appSettings": [
+            {
+              "name": "AzureWebJobsStorage",
+              "value": "[format('DefaultEndpointsProtocol=https;AccountName={0};EndpointSuffix={1};AccountKey={2}', format('stquiz{0}', parameters('uniqueSuffix')), environment().suffixes.storage, listKeys(resourceId('Microsoft.Storage/storageAccounts', format('stquiz{0}', parameters('uniqueSuffix'))), '2023-01-01').keys[0].value)]"
+            },
+            {
+              "name": "FUNCTIONS_EXTENSION_VERSION",
+              "value": "~4"
+            },
+            {
+              "name": "FUNCTIONS_WORKER_RUNTIME",
+              "value": "node"
+            },
+            {
+              "name": "WEBSITE_NODE_DEFAULT_VERSION",
+              "value": "~20"
+            },
+            {
+              "name": "ADMIN_PASSWORD",
+              "value": "[parameters('adminPassword')]"
+            },
+            {
+              "name": "TABLE_STORAGE_CONNECTION",
+              "value": "[format('DefaultEndpointsProtocol=https;AccountName={0};EndpointSuffix={1};AccountKey={2}', format('stquiz{0}', parameters('uniqueSuffix')), environment().suffixes.storage, listKeys(resourceId('Microsoft.Storage/storageAccounts', format('stquiz{0}', parameters('uniqueSuffix'))), '2023-01-01').keys[0].value)]"
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', format('plan-quiz-{0}', parameters('uniqueSuffix')))]",
+        "[resourceId('Microsoft.Storage/storageAccounts', format('stquiz{0}', parameters('uniqueSuffix')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Web/staticSites",
+      "apiVersion": "2023-01-01",
+      "name": "[format('swa-quiz-{0}', parameters('uniqueSuffix'))]",
+      "location": "[parameters('swaLocation')]",
+      "sku": {
+        "name": "Free",
+        "tier": "Free"
+      },
+      "properties": {}
+    },
+    {
+      "type": "Microsoft.Web/staticSites/linkedBackends",
+      "apiVersion": "2023-01-01",
+      "name": "[format('{0}/{1}', format('swa-quiz-{0}', parameters('uniqueSuffix')), 'backend')]",
+      "properties": {
+        "backendResourceId": "[resourceId('Microsoft.Web/sites', format('func-quiz-{0}', parameters('uniqueSuffix')))]",
+        "region": "[parameters('location')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', format('func-quiz-{0}', parameters('uniqueSuffix')))]",
+        "[resourceId('Microsoft.Web/staticSites', format('swa-quiz-{0}', parameters('uniqueSuffix')))]"
+      ]
+    }
+  ],
+  "outputs": {
+    "staticWebAppUrl": {
+      "type": "string",
+      "value": "[format('https://{0}', reference(resourceId('Microsoft.Web/staticSites', format('swa-quiz-{0}', parameters('uniqueSuffix'))), '2023-01-01').defaultHostname)]"
+    },
+    "functionAppUrl": {
+      "type": "string",
+      "value": "[format('https://{0}', reference(resourceId('Microsoft.Web/sites', format('func-quiz-{0}', parameters('uniqueSuffix'))), '2023-01-01').defaultHostName)]"
+    },
+    "staticWebAppName": {
+      "type": "string",
+      "value": "[format('swa-quiz-{0}', parameters('uniqueSuffix'))]"
+    },
+    "functionAppName": {
+      "type": "string",
+      "value": "[format('func-quiz-{0}', parameters('uniqueSuffix'))]"
+    },
+    "storageAccountName": {
+      "type": "string",
+      "value": "[format('stquiz{0}', parameters('uniqueSuffix'))]"
+    }
+  }
+}

@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SunCorp Hackathon Quiz</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{boxShadow:{'glow':'0 0 25px rgba(59,130,246,0.5), 0 0 50px rgba(59,130,246,0.2)','glow-green':'0 0 25px rgba(34,197,94,0.5)','glow-red':'0 0 25px rgba(239,68,68,0.4)','glow-sm':'0 0 15px rgba(59,130,246,0.3)'}}}}</script>
+  <style>
+    body { background: linear-gradient(135deg, #0f0c29 0%, #1a1a3e 40%, #24243e 100%); }
+    .glass { background: rgba(255,255,255,0.06); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.1); }
+    .glass-header { background: rgba(0,0,0,0.3); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .result-overlay { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); animation: roFadeIn 0.4s ease; }
+    .result-icon { font-size: 10rem; animation: roPopBounce 0.6s cubic-bezier(0.34,1.56,0.64,1); filter: drop-shadow(0 0 60px var(--glow-color)); }
+    .result-label { font-size: 2rem; font-weight: 800; margin-top: 1rem; animation: roSlideUp 0.5s ease 0.3s both; }
+    @keyframes roFadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes roPopBounce { 0% { transform: scale(0) rotate(-20deg); opacity: 0; } 60% { transform: scale(1.2) rotate(5deg); } 100% { transform: scale(1) rotate(0); opacity: 1; } }
+    @keyframes roSlideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    @keyframes roPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+  </style>
+</head>
+<body class="text-gray-100 min-h-screen flex flex-col font-sans">
+  <header class="glass-header text-white px-6 py-4 flex items-center gap-4">
+    <h1 class="text-xl font-semibold">🎯 Hackathon Quiz</h1>
+    <div class="flex items-center gap-3 ml-auto">
+      <span id="header-customer-logo" class="hidden"></span>
+      <img src="images/microsoft-logo.png" alt="Microsoft" class="h-9 brightness-110">
+    </div>
+  </header>
+
+  <main class="max-w-xl mx-auto w-full px-5 py-10 flex-1">
+    <div class="glass rounded-2xl shadow-glow-sm p-8 mb-6">
+      <label for="name" class="block font-semibold mb-1.5 text-sm text-blue-200">Your Name</label>
+      <input type="text" id="name" placeholder="Enter your name" autocomplete="name"
+        class="w-full px-3.5 py-2.5 bg-white/10 border border-white/20 rounded-lg text-base text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-400">
+    </div>
+
+    <div id="quiz-area">
+      <div id="closed-msg" class="text-center text-gray-400 py-10">
+        <h2 class="text-xl font-semibold text-gray-300 mb-2">⏳ Waiting for a question...</h2>
+        <p>The host hasn't opened a question yet. Hang tight!</p>
+      </div>
+    </div>
+
+    <div id="result-msg"></div>
+  </main>
+
+  <footer class="text-center py-6 flex flex-col items-center gap-4">
+    <div class="glass rounded-xl px-6 py-3 inline-flex items-center gap-3 shadow-glow-purple">
+      <svg class="w-7 h-7 text-white" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.866-.013-1.7-2.782.604-3.369-1.341-3.369-1.341-.454-1.155-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836a9.59 9.59 0 012.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z" fill="currentColor"/></svg>
+      <span class="text-lg font-semibold text-white tracking-wide">Powered by <span class="bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent">GitHub Copilot</span></span>
+    </div>
+    <span class="text-gray-500 text-sm">&copy; 2026 Microsoft Customer Success</span>
+  </footer>
+
+  <script>
+    const API_BASE = "/api";
+    let selectedAnswer = null;
+    let lastQuestionText = null;
+    let countdownInterval = null;
+    let questionOpenedAt = null;
+    let submittedAnswer = null;
+    let hasShownResult = false;
+    let getReadyActive = false;
+    let pendingQuestionData = null;
+    let appSettings = { timerSeconds: 15 };
+
+    // Load settings on init
+    (async function initSettings() {
+      try {
+        const res = await fetch(`${API_BASE}/settings`);
+        if (res.ok) {
+          appSettings = await res.json();
+          const title = [appSettings.organisationName, appSettings.hackathonName].filter(Boolean).join(' — ');
+          if (title) document.querySelector('header h1').textContent = '🎯 ' + title + ' Quiz';
+          const logoEl = document.getElementById('header-customer-logo');
+          if (logoEl && appSettings.customerLogo) {
+            logoEl.innerHTML = `<img src="${appSettings.customerLogo}" alt="Logo" class="h-9 brightness-110">`;
+            logoEl.classList.remove('hidden');
+          }
+        }
+      } catch (e) { /* ignore */ }
+    })();
+
+    async function pollQuestion() {
+      try {
+        const res = await fetch(`${API_BASE}/question`);
+        const data = await res.json();
+        renderQuestion(data);
+      } catch (e) {
+        console.error("Poll error:", e);
+      }
+    }
+
+    function renderQuestion(data) {
+      const area = document.getElementById("quiz-area");
+      const resultMsg = document.getElementById("result-msg");
+
+      if (!data.isOpen) {
+        area.innerHTML = `<div class="text-center text-gray-400 py-10"><h2 class="text-xl font-semibold text-gray-300 mb-2">⏳ Waiting for a question...</h2><p>${data.message || "Hang tight!"}</p></div>`;
+        if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+
+        // Show result overlay when question closes and user had submitted
+        if (lastQuestionText !== null && submittedAnswer && data.correctAnswer && !hasShownResult) {
+          const isCorrect = submittedAnswer === data.correctAnswer;
+          showResultOverlay(isCorrect);
+          hasShownResult = true;
+        }
+
+        if (lastQuestionText !== null) {
+          lastQuestionText = null;
+        }
+        return;
+      }
+
+      if (lastQuestionText !== data.question) {
+        selectedAnswer = null;
+        submittedAnswer = null;
+        hasShownResult = false;
+        resultMsg.innerHTML = "";
+        lastQuestionText = data.question;
+        questionOpenedAt = data.openedAt ? new Date(data.openedAt).getTime() : Date.now();
+
+        // Show 3-second "Get Ready" countdown
+        const elapsed = (Date.now() - questionOpenedAt) / 1000;
+        const readyRemaining = Math.ceil(3 - elapsed);
+        if (readyRemaining > 0) {
+          getReadyActive = true;
+          pendingQuestionData = data;
+          showGetReady(readyRemaining);
+          return;
+        }
+        startCountdown();
+      }
+
+      if (getReadyActive) return;
+
+      const timerHtml = `<div id="countdown-bar" class="mb-5">
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="text-sm font-semibold text-gray-300">⏱️ Time Remaining</span>
+          <span id="countdown-text" class="text-2xl font-bold tabular-nums text-blue-300">${appSettings.timerSeconds || 15}</span>
+        </div>
+        <div class="w-full h-3 bg-white/10 rounded-full overflow-hidden border border-white/10">
+          <div id="countdown-fill" class="h-full rounded-full transition-all duration-1000 ease-linear bg-gradient-to-r from-blue-500 to-cyan-400 shadow-[0_0_10px_rgba(59,130,246,0.5)]" style="width:100%"></div>
+        </div>
+      </div>`;
+
+      area.innerHTML = `
+        <div class="glass rounded-2xl shadow-glow p-8 mb-6">
+          ${timerHtml}
+          <h2 class="text-lg font-semibold text-white mb-4" data-testid="question-text">${escapeHtml(data.question)}</h2>
+          <div class="flex flex-col gap-2.5 my-4" id="options">
+            ${shuffleArray([...data.options]).map(opt => `<button class="option-btn px-4 py-3 border-2 border-white/20 rounded-lg bg-white/5 text-left text-base text-gray-100 transition-all hover:border-blue-400 hover:bg-blue-500/15 hover:shadow-glow-sm ${selectedAnswer === opt ? 'border-blue-400 bg-blue-500/20 font-semibold shadow-glow-sm' : ''}" data-testid="option-btn" onclick="selectOption(this, '${escapeAttr(opt)}')">${escapeHtml(opt)}</button>`).join("")}
+          </div>
+          <button class="px-7 py-3 bg-blue-600 text-white rounded-lg text-base font-semibold cursor-pointer hover:bg-blue-500 hover:shadow-glow disabled:bg-blue-900 disabled:text-gray-400 disabled:shadow-none disabled:cursor-not-allowed transition-all" id="submit-btn" data-testid="submit-btn" onclick="submitAnswer()">Submit Answer</button>
+        </div>
+      `;
+      updateCountdownDisplay();
+    }
+
+    function showGetReady(seconds) {
+      const area = document.getElementById("quiz-area");
+      let count = seconds;
+
+      function renderCount() {
+        area.innerHTML = `
+          <div class="text-center py-16">
+            <p class="text-lg text-gray-400 mb-4 uppercase tracking-widest">Get Ready!</p>
+            <div class="text-9xl font-black text-white animate-pulse" style="text-shadow: 0 0 40px rgba(59,130,246,0.6)">${count}</div>
+          </div>`;
+        ensureAudio();
+        playBeep(count === 1 ? 1200 : 800, count === 1 ? 0.4 : 0.15);
+      }
+
+      renderCount();
+      const iv = setInterval(() => {
+        count--;
+        if (count <= 0) {
+          clearInterval(iv);
+          getReadyActive = false;
+          if (pendingQuestionData) {
+            startCountdown();
+            renderQuestion(pendingQuestionData);
+            pendingQuestionData = null;
+          }
+          return;
+        }
+        renderCount();
+      }, 1000);
+    }
+
+    // Audio - init on first user interaction to satisfy browser autoplay policy
+    let audioCtx = null;
+    let beepedAt = {};
+    function ensureAudio() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+    document.addEventListener('click', ensureAudio, { once: false });
+    document.addEventListener('touchstart', ensureAudio, { once: false });
+    document.addEventListener('keydown', ensureAudio, { once: false });
+
+    function playBeep(freq, duration) {
+      ensureAudio();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.frequency.value = freq;
+      osc.type = 'square';
+      gain.gain.setValueAtTime(0.6, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+      osc.start(audioCtx.currentTime);
+      osc.stop(audioCtx.currentTime + duration);
+    }
+
+    function startCountdown() {
+      if (countdownInterval) clearInterval(countdownInterval);
+      beepedAt = {};
+      countdownInterval = setInterval(updateCountdownDisplay, 250);
+    }
+
+    function updateCountdownDisplay() {
+      const elapsed = (Date.now() - questionOpenedAt) / 1000;
+      const remaining = Math.max(0, (appSettings.timerSeconds || 15) - elapsed);
+      const pct = (remaining / (appSettings.timerSeconds || 15)) * 100;
+      const sec = Math.ceil(remaining);
+
+      const textEl = document.getElementById("countdown-text");
+      const fillEl = document.getElementById("countdown-fill");
+      if (!textEl || !fillEl) return;
+
+      textEl.textContent = sec;
+      fillEl.style.width = pct + "%";
+
+      // Beep at 3, 2, 1
+      if (sec === 3 && !beepedAt[3]) { beepedAt[3] = true; playBeep(800, 0.15); }
+      if (sec === 2 && !beepedAt[2]) { beepedAt[2] = true; playBeep(800, 0.15); }
+      if (sec === 1 && !beepedAt[1]) { beepedAt[1] = true; playBeep(1200, 0.6); }
+
+      if (remaining <= 10) {
+        fillEl.className = fillEl.className.replace(/from-\S+ to-\S+/, "from-red-500 to-orange-400");
+        fillEl.style.boxShadow = "0 0 10px rgba(239,68,68,0.5)";
+        textEl.className = textEl.className.replace("text-blue-300", "text-red-400");
+      } else if (remaining <= 20) {
+        fillEl.className = fillEl.className.replace(/from-\S+ to-\S+/, "from-yellow-500 to-amber-400");
+        fillEl.style.boxShadow = "0 0 10px rgba(234,179,8,0.5)";
+        textEl.className = textEl.className.replace("text-blue-300", "text-yellow-300");
+      }
+
+      if (remaining <= 0) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+        textEl.textContent = "0";
+        textEl.innerHTML = "<span class='text-red-400 animate-pulse'>⏰ Time's up!</span>";
+      }
+    }
+
+    function showResultOverlay(isCorrect) {
+      const existing = document.getElementById("result-overlay");
+      if (existing) existing.remove();
+
+      const overlay = document.createElement("div");
+      overlay.id = "result-overlay";
+      overlay.className = "result-overlay";
+      overlay.style.setProperty("--glow-color", isCorrect ? "rgba(34,197,94,0.6)" : "rgba(239,68,68,0.6)");
+      overlay.innerHTML = `
+        <div class="text-center" style="animation: roPulse 2s ease infinite">
+          <div class="result-icon">${isCorrect ? "✅" : "❌"}</div>
+          <div class="result-label ${isCorrect ? "text-green-400" : "text-red-400"}">${isCorrect ? "Correct! 🎉" : "Wrong Answer 😢"}</div>
+        </div>
+      `;
+      overlay.onclick = () => dismissResultOverlay();
+      document.body.appendChild(overlay);
+      setTimeout(dismissResultOverlay, 10000);
+    }
+
+    function dismissResultOverlay() {
+      const overlay = document.getElementById("result-overlay");
+      if (overlay) {
+        overlay.style.opacity = "0";
+        overlay.style.transition = "opacity 0.5s";
+        setTimeout(() => overlay.remove(), 500);
+      }
+    }
+
+    function selectOption(btn, value) {
+      document.querySelectorAll(".option-btn").forEach(b => { b.classList.remove("border-blue-400", "bg-blue-500/20", "font-semibold", "shadow-glow-sm"); b.classList.add("border-white/20"); });
+      btn.classList.remove("border-white/20");
+      btn.classList.add("border-blue-400", "bg-blue-500/20", "font-semibold", "shadow-glow-sm");
+      selectedAnswer = value;
+    }
+
+    async function submitAnswer() {
+      const name = document.getElementById("name").value.trim();
+      const resultMsg = document.getElementById("result-msg");
+
+      if (!name) {
+        resultMsg.innerHTML = `<div class="px-4 py-3 rounded-lg mt-4 font-medium bg-red-500/15 text-red-300 border border-red-500/30 shadow-glow-red" data-testid="error-msg">Please enter your name.</div>`;
+        return;
+      }
+      if (!selectedAnswer) {
+        resultMsg.innerHTML = `<div class="px-4 py-3 rounded-lg mt-4 font-medium bg-red-500/15 text-red-300 border border-red-500/30 shadow-glow-red" data-testid="error-msg">Please select an answer.</div>`;
+        return;
+      }
+
+      const btn = document.getElementById("submit-btn");
+      btn.disabled = true;
+      btn.textContent = "Submitting...";
+
+      try {
+        const res = await fetch(`${API_BASE}/submit`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, answer: selectedAnswer }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          submittedAnswer = selectedAnswer;
+          resultMsg.innerHTML = `<div class="px-4 py-3 rounded-lg mt-4 font-medium bg-green-500/15 text-green-300 border border-green-500/30 shadow-glow-green" data-testid="success-msg">✅ ${escapeHtml(data.message)}</div>`;
+        } else {
+          resultMsg.innerHTML = `<div class="px-4 py-3 rounded-lg mt-4 font-medium bg-red-500/15 text-red-300 border border-red-500/30 shadow-glow-red" data-testid="error-msg">❌ ${escapeHtml(data.error)}</div>`;
+          btn.disabled = false;
+          btn.textContent = "Submit Answer";
+        }
+      } catch (e) {
+        resultMsg.innerHTML = `<div class="px-4 py-3 rounded-lg mt-4 font-medium bg-red-500/15 text-red-300 border border-red-500/30 shadow-glow-red" data-testid="error-msg">❌ Network error. Try again.</div>`;
+        btn.disabled = false;
+        btn.textContent = "Submit Answer";
+      }
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement("div");
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function escapeAttr(str) {
+      return str.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+    }
+
+    function shuffleArray(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    // Poll every 3 seconds
+    pollQuestion();
+    setInterval(pollQuestion, 3000);
+  </script>
+</body>
+</html>
+
+
