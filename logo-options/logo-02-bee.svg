@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 120" width="400" height="120">
+  <defs>
+    <linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#f59e0b"/>
+      <stop offset="100%" style="stop-color:#eab308"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="120" rx="16" fill="#1a1a2e"/>
+  <!-- Hexagon bee icon -->
+  <polygon points="50,30 70,20 90,30 90,50 70,60 50,50" fill="none" stroke="url(#g2)" stroke-width="3"/>
+  <polygon points="58,37 68,32 78,37 78,47 68,52 58,47" fill="url(#g2)" opacity="0.6"/>
+  <!-- Wings -->
+  <ellipse cx="45" cy="32" rx="12" ry="6" fill="#f59e0b" opacity="0.3" transform="rotate(-30 45 32)"/>
+  <ellipse cx="95" cy="32" rx="12" ry="6" fill="#f59e0b" opacity="0.3" transform="rotate(30 95 32)"/>
+  <text x="55" y="90" font-family="Arial Black, sans-serif" font-size="14" fill="#fbbf24" letter-spacing="6">HACKBUZZ</text>
+  <text x="115" y="52" font-family="Arial Black, sans-serif" font-size="50" font-weight="900" fill="white">Hack<tspan fill="url(#g2)">Buzz</tspan></text>
+</svg>

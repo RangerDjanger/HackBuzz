@@ -1,6 +1,12 @@
-# 🐝 HackBuzz
+<p align="center">
+  <img src="logo-options/logo-11-custom.svg" alt="HackBuzz" width="400">
+</p>
 
-**HackBuzz** is a reusable real-time quiz & survey platform for hackathon events. Run engaging live quizzes with countdown timers and winner announcements, collect anonymous participant feedback, and generate professional PDF reports — all from a single deployable app.
+<p align="center"><strong>Real-time quiz & survey platform for hackathon events.</strong></p>
+
+---
+
+**HackBuzz** is a reusable real-time quiz & survey platform for hackathon events.Run engaging live quizzes with countdown timers and winner announcements, collect anonymous participant feedback, and generate professional PDF reports — all from a single deployable app.
 
 Built with vanilla HTML/CSS/JavaScript frontend and Azure Functions backend.
 

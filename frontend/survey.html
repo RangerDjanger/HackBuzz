@@ -21,10 +21,10 @@
 </head>
 <body class="text-gray-100 min-h-screen flex flex-col font-sans">
   <header class="glass-header text-white px-6 py-4 flex items-center gap-4">
-    <h1 class="text-2xl font-semibold" id="survey-title">📋 Hackathon Feedback Survey</h1>
+    <img src="images/hackbuzz-logo.svg" alt="HackBuzz" class="h-10">
+    <h1 class="text-xl font-semibold hidden" id="survey-title"></h1>
     <div class="flex items-center gap-3 ml-auto">
       <span id="header-customer-logo" class="hidden"></span>
-      <img src="images/microsoft-logo.png" alt="Microsoft" class="h-9 brightness-110">
     </div>
   </header>
 
@@ -202,7 +202,11 @@
         if (res.ok) {
           const s = await res.json();
           const title = [s.organisationName, s.hackathonName].filter(Boolean).join(' — ');
-          if (title) document.getElementById('survey-title').textContent = '📋 ' + title + ' Survey';
+          if (title) {
+            const el = document.getElementById('survey-title');
+            el.textContent = '📋 ' + title + ' Survey';
+            el.classList.remove('hidden');
+          }
           const logoEl = document.getElementById('header-customer-logo');
           if (logoEl && s.customerLogo) {
             logoEl.innerHTML = `<img src="${s.customerLogo}" alt="Logo" class="h-9 brightness-110">`;
