@@ -1,17 +1,17 @@
-# Deploy SunCorp Hackathon Quiz to Azure
-# Usage: .\infra\deploy.ps1 -AdminPassword "suncorphack"
+# Deploy HackBuzz to Azure
+# Usage: .\infra\deploy.ps1 -AdminPassword "yoursecret"
 
 param(
     [Parameter(Mandatory=$true)]
     [string]$AdminPassword,
 
-    [string]$ResourceGroup = "suncorp_hack_rg",
+    [string]$ResourceGroup = "hackbuzz_rg",
     [string]$Location = "australiaeast"
 )
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "=== SunCorp Hackathon Quiz - Azure Deployment ===" -ForegroundColor Cyan
+Write-Host "=== HackBuzz - Azure Deployment ===" -ForegroundColor Cyan
 
 # 1. Ensure resource group exists
 Write-Host "`n[1/5] Ensuring resource group '$ResourceGroup' exists..." -ForegroundColor Yellow

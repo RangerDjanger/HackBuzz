@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quiz Admin - SunCorp Hackathon</title>
+  <title>HackBuzz - Quiz Admin</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -871,7 +871,7 @@
       doc.setFontSize(22);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(30, 30, 80);
-      doc.text('Microsoft × Suncorp Hackathon', pageW / 2, y, { align: 'center' });
+      doc.text('HackBuzz — Hackathon Report', pageW / 2, y, { align: 'center' });
       y += 10;
       doc.setFontSize(16);
       doc.setTextColor(80, 80, 140);
@@ -1008,7 +1008,7 @@
         doc.setPage(i);
         doc.setFontSize(8);
         doc.setTextColor(150, 150, 150);
-        doc.text(`Microsoft × Suncorp Hackathon 2026 • Page ${i} of ${totalPages}`, pageW / 2, 290, { align: 'center' });
+        doc.text(`HackBuzz Report • Page ${i} of ${totalPages}`, pageW / 2, 290, { align: 'center' });
       }
 
       doc.save(`hackathon-survey-report-${new Date().toISOString().slice(0, 10)}.pdf`);

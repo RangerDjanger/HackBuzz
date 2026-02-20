@@ -1,6 +1,40 @@
-# SunCorp Hackathon Quiz App
+# 🐝 HackBuzz
 
-A simple real-time quiz application for hackathon events, built with vanilla HTML/CSS/JavaScript and Azure Functions.
+**HackBuzz** is a reusable real-time quiz & survey platform for hackathon events. Run engaging live quizzes with countdown timers and winner announcements, collect anonymous participant feedback, and generate professional PDF reports — all from a single deployable app.
+
+Built with vanilla HTML/CSS/JavaScript frontend and Azure Functions backend.
+
+## ✨ Features
+
+### 🎯 Live Quiz
+- Admin creates/opens multiple-choice questions (2–4 options)
+- 🤖 AI question generator with 90+ Azure-level questions
+- Configurable countdown timer (5–120 seconds) with crossfit-style 3-2-1 beeps
+- 3-second "Get Ready" countdown before questions appear
+- Randomised answer order to prevent pattern-guessing
+- Real-time response counter on admin dashboard
+- 🏆 Winner announcement with top 3 podium, time splits, confetti & trophy animation
+- ✅/❌ Correct/incorrect overlay on participant screens
+
+### 📊 Anonymous Survey
+- 8 questions with stylish chip/pill selectors
+- Star rating, multi-select, and free-text fields
+- Survey open/close toggle from admin panel
+- One-submission-per-person via localStorage
+- Hackathon participation badge on completion
+
+### 📈 Admin Dashboard
+- **Quiz tab** — Question management, live countdown, submissions, winner reveal
+- **Survey Results tab** — Chart.js visualisations, written feedback display
+- **Settings tab** — Organisation name, hackathon name, timer duration, customer logo upload
+- 📄 PDF report export with executive summary & detailed breakdowns
+- 📥 Excel export of all survey data
+- 🗑️ Clear survey results with confirmation
+
+### ⚙️ Configurable Branding
+- Organisation name & hackathon name (displayed across all pages)
+- Custom logo upload (shown in headers)
+- All settings stored in Azure Table Storage
 
 ## Architecture
 
@@ -8,26 +42,40 @@ A simple real-time quiz application for hackathon events, built with vanilla HTM
 ┌──────────────────┐     ┌───────────────────┐     ┌──────────────────┐
 │  Static Web App  │────▶│  Azure Functions   │────▶│  Table Storage   │
 │  (Frontend)      │     │  (Node.js API)     │     │  (Data)          │
-│  index.html      │     │  /api/question     │     │  QuizState       │
-│  admin.html      │     │  /api/submit       │     │  Submissions     │
-│                  │     │  /api/admin/*      │     │                  │
+│  index.html      │     │  14 endpoints      │     │  QuizState       │
+│  admin.html      │     │  /api/question     │     │  Submissions     │
+│  survey.html     │     │  /api/manage/*     │     │  SurveyResponses │
+│                  │     │  /api/survey/*     │     │  SurveyState     │
+│                  │     │  /api/settings     │     │  AppSettings     │
 └──────────────────┘     └───────────────────┘     └──────────────────┘
 ```
 
 ## Pages
 
-- **`/index.html`** — Participant page: enter name, view question, select answer, submit
-- **`/admin.html`** — Admin page: login, create questions, open/close, view results
+| Page | URL | Description |
+|------|-----|-------------|
+| Quiz | `/index.html` | Participant view — enter name, answer questions, see results |
+| Admin | `/admin.html` | Admin dashboard — manage quiz, survey, settings |
+| Survey | `/survey.html` | Anonymous feedback survey with badge reward |
 
 ## API Endpoints
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| GET | `/api/question` | None | Get current question and options |
-| POST | `/api/submit` | None | Submit an answer `{ name, answer }` |
-| POST | `/api/manage/open` | Admin | Open a question `{ question, options, correctAnswer }` |
-| POST | `/api/manage/close` | Admin | Close the current question |
-| GET | `/api/manage/results` | Admin | Get all submissions sorted by time |
+| GET | `/api/question` | None | Get current question |
+| POST | `/api/submit` | None | Submit a quiz answer |
+| POST | `/api/manage/open` | Admin | Open a question |
+| POST | `/api/manage/close` | Admin | Close current question |
+| GET | `/api/manage/results` | Admin | Get quiz submissions |
+| POST | `/api/manage/generate` | Admin | AI-generate a question |
+| GET | `/api/settings` | None | Get app settings |
+| POST | `/api/manage/settings` | Admin | Save app settings |
+| GET | `/api/survey/status` | None | Check if survey is open |
+| POST | `/api/survey/submit` | None | Submit survey response |
+| GET | `/api/survey/results` | Admin | Get all survey responses |
+| POST | `/api/manage/survey/open` | Admin | Open the survey |
+| POST | `/api/manage/survey/close` | Admin | Close the survey |
+| POST | `/api/manage/survey/clear` | Admin | Delete all survey data |
 
 Admin endpoints require the `x-admin-password` HTTP header.
 
@@ -58,79 +106,35 @@ The API runs at `http://localhost:7071`.
 
 ### 3. Serve the frontend
 
-Use any static file server:
-
 ```bash
 cd frontend
 npx serve .
 ```
 
-Or open `index.html` directly (update `API_BASE` in the HTML to `http://localhost:7071/api`).
-
-## Deployment to Azure
-
-### Quick Deploy (PowerShell)
-
-```powershell
-.\infra\deploy.ps1 -AdminPassword "suncorphack"
-```
-
-This single command will create all resources, deploy the Functions and frontend, and lock down CORS.
-
-### Manual Steps
-
-#### 1. Create the resource group (if it doesn't exist)
-
-```bash
-az group create --name suncorp_hack_rg --location australiaeast
-```
-
-#### 2. Deploy infrastructure with Bicep
-
-```bash
-az deployment group create \
-  --resource-group suncorp_hack_rg \
-  --template-file infra/main.bicep \
-  --parameters adminPassword=suncorphack
-```
-
-#### 3. Deploy the Azure Functions
-
-```bash
-cd api
-func azure functionapp publish <functionAppName>
-```
-
-#### 4. Deploy the frontend
-
-```bash
-SWA_TOKEN=$(az staticwebapp secrets list --name <staticWebAppName> -g suncorp_hack_rg --query "properties.apiKey" -o tsv)
-npx @azure/static-web-apps-cli deploy frontend --deployment-token $SWA_TOKEN --env production
-```
-
-#### 5. Lock down CORS (optional but recommended)
-
-```bash
-az functionapp cors remove -g suncorp_hack_rg -n <funcAppName> --allowed-origins '*'
-az functionapp cors add -g suncorp_hack_rg -n <funcAppName> --allowed-origins 'https://<swa-hostname>'
-```
-
-Replace `<functionAppName>`, `<staticWebAppName>`, and `<swa-hostname>` with the Bicep deployment outputs.
-
 ## Environment Variables
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `ADMIN_PASSWORD` | Password for admin API endpoints | `suncorphack` |
+| `ADMIN_PASSWORD` | Password for admin API endpoints | (set your own) |
 | `TABLE_STORAGE_CONNECTION` | Azure Table Storage connection string | `UseDevelopmentStorage=true` |
 | `AzureWebJobsStorage` | Azure Functions storage connection | `UseDevelopmentStorage=true` |
 
 ## How It Works
 
-1. Admin logs into `/admin.html` with the shared password
-2. Admin creates a question with multiple-choice options and clicks **Open Question**
-3. Participants on `/index.html` see the question appear (auto-polls every 3 seconds)
-4. Participants enter their name, select an answer, and submit
-5. Server validates the question is still open and records the submission with a UTC timestamp
-6. Admin clicks **Close Question** to stop accepting submissions
-7. Admin views results sorted by submission time
+1. Admin logs into `/admin.html` and configures settings (org name, timer, logo)
+2. Admin creates or AI-generates a question and clicks **Open Question**
+3. Participants on `/index.html` see a 3-2-1 countdown, then the question with a timed countdown bar
+4. Participants select an answer and submit — responses are tracked with millisecond precision
+5. Timer expires → question auto-closes → admin sees top 3 winners with trophy celebration
+6. Participants see ✅ or ❌ overlay showing if they got it right
+7. After the quiz, admin opens the survey toggle
+8. Participants complete the anonymous survey at `/survey.html` and earn a badge
+9. Admin exports results as PDF report or Excel spreadsheet
+
+## Deployment
+
+See [DEPLOY.md](DEPLOY.md) for full Azure deployment instructions.
+
+## License
+
+© 2026 Microsoft Customer Success

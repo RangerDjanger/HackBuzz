@@ -1,7 +1,7 @@
 {
-  "name": "suncorp-hack-quiz-api",
+  "name": "hackbuzz-api",
   "version": "1.0.0",
-  "description": "Azure Functions backend for SunCorp Hackathon Quiz",
+  "description": "Azure Functions backend for HackBuzz",
   "main": "index.js",
   "scripts": {
     "start": "func start"

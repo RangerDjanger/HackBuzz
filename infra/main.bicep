@@ -97,8 +97,8 @@ resource linkedBackend 'Microsoft.Web/staticSites/linkedBackends@2023-01-01' = {
 }
 
 // After SWA deployment, lock down CORS to the actual SWA hostname
-// Run: az functionapp cors remove -g suncorp_hack_rg -n <funcAppName> --allowed-origins '*'
-// Then: az functionapp cors add -g suncorp_hack_rg -n <funcAppName> --allowed-origins 'https://<swa-hostname>'
+// Run: az functionapp cors remove -g <resourceGroup> -n <funcAppName> --allowed-origins '*'
+// Then: az functionapp cors add -g <resourceGroup> -n <funcAppName> --allowed-origins 'https://<swa-hostname>'
 
 output staticWebAppUrl string = 'https://${staticWebApp.properties.defaultHostname}'
 output functionAppUrl string = 'https://${functionApp.properties.defaultHostName}'

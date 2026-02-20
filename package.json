@@ -1,5 +1,5 @@
 {
-  "name": "suncorphackquick",
+  "name": "hackbuzz",
   "version": "1.0.0",
   "description": "A simple real-time quiz application for hackathon events, built with vanilla HTML/CSS/JavaScript and Azure Functions.",
   "main": "index.js",
